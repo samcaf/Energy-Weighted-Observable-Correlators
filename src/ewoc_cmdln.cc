@@ -107,10 +107,36 @@ The python plotting can also take in a list of subjet radii:
 
 
   # ================================================
-  # Example command:
+  # Example commands:
   # ================================================
-    ```./pythia_ewocs -n 5000 -l parton -p qcd -j 2 -s 0 -R 1.0 -r 0.1 --pt_min 50 --pt_max 3000```
 
+  # ---------------------------------
+  # Single Subjet Radius
+  # ---------------------------------
+  # Generate EWOC data for 5000 parton-level qcd events
+  #R=1 anti-kt jets, r=.1 kt subjets
+  ```
+    ./pythia_ewocs -n 5000 -l parton -p qcd -j 2 -s 0 -R 1.0 -r 0.1 --pt_min 50 --pt_max 3000
+
+    cd python
+    python3 plot_pythia_ewocs.py -n 5000 -l parton -p qcd -j 2 -s 1 -R 1.0 -r 0.1 --pt_min 50 --pt_max 300
+    cd ..
+  ```
+
+  # ---------------------------------
+  # Multiple Subjet Radii
+  # ---------------------------------
+  # Generate EWOC data for 50000 parton-level qcd events
+  # R=1 anti-kt jets, r in [.0,.1,.2,.3,.4,.5] kt subjets
+  ```
+    for rsub in 0.0 0.1 0.2 0.3 0.4 0.5
+      ./pythia_ewocs -n 50000 -l parton -p qcd -j 2 -s 1 -R 1.0 -r $rsub --pt_min 50 --pt_max 3000
+    end
+
+    cd python
+    python3 plot_pythia_ewocs.py -n 50000 -l parton -p qcd -j 2 -s 1 -R 1.0 -r [0.0,0.1,0.2,0.3,0.4,0.5] --pt_min 50 --pt_max 3000
+    cd ..
+  ```
 )";
 
 
@@ -146,6 +172,7 @@ int checkCmdInputs(int argc, char* argv[]) {
     double      pt_max        = ptmax_cmdln(argc, argv);
 
     // Advanced Settings
+    double      frag_temp     = fragtemp_cmdln(argc, argv);
 
     // ---------------------------------
     // Help
@@ -221,13 +248,19 @@ int checkCmdInputs(int argc, char* argv[]) {
         return 1;
     }
 
-    if (pt_min <= 0){
+    if (pt_min <= 0 and pt_min != -1){
         std::cout << "pt_min must be positive.\n";
         return 1;
     }
 
     if (pt_max <= pt_min){
         std::cout << "pt_max must be larger than pt_min.\n";
+        return 1;
+    }
+
+    // Advanced Options
+    if (frag_temp != _frag_temp_default and qcd_level != "hadron") {
+        std::cout << "Thermal string fragmentation requires hadron level event generation.\n";
         return 1;
     }
 
@@ -249,7 +282,7 @@ int checkCmdInputs(int argc, char* argv[]) {
 // =====================================
 
 // ---------------------------------
-// Basic Options from Command Line
+// Required Basic Options
 // ---------------------------------
 
 // Number of events
@@ -317,7 +350,7 @@ double jetrad_cmdln(int argc, char* argv[]) {
             // Allowing infinite jet radius (whole event)
             if(strcmp(argv[iarg+1], "inf") == 0 or
              strcmp(argv[iarg+1], "infty") == 0 )
-                return std::numeric_limits<double>::max();
+                return 1000;
             // Otherwise, we assume it is finite
             return atof(argv[iarg+1]);
         }
@@ -336,7 +369,7 @@ double subrad_cmdln(int argc, char* argv[]) {
 }
 
 // ---------------------------------
-// Optional Options from Command Line
+// Optional Basic Options
 // ---------------------------------
 // Phase space options
 double ptmin_cmdln(int argc, char* argv[]) {
@@ -354,7 +387,7 @@ double ptmax_cmdln(int argc, char* argv[]) {
         if(strcmp(argv[iarg], "--pt_max") == 0)
             return atof(argv[iarg+1]);
     }
-    return -1;
+    return std::numeric_limits<double>::max();
 }
 
 // Misc. Options
@@ -366,3 +399,26 @@ int verbose_cmdln(int argc, char* argv[]) {
     }
     return 0;
 }
+
+
+// ---------------------------------
+// Advanced Options
+// ---------------------------------
+// Thermodynamical Fragmentation
+double _frag_temp_default = -10;
+double fragtemp_cmdln(int argc, char* argv[]) {
+    for(int iarg=0;iarg<argc;iarg++) {
+        // Event Generator Parameters
+        if(strcmp(argv[iarg], "-T") == 0
+         or strcmp(argv[iarg], "--frag_temp"))
+            return atof(argv[iarg+1]);
+    }
+    return _frag_temp_default;
+}
+
+// Rope Hadronization
+// Coming soon!
+double _ropeshove_amp_default = -10;
+
+// Others
+// Coming soon!

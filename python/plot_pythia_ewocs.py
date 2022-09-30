@@ -1,8 +1,15 @@
 import sys
 import numpy as np
-from ewoc_utils import *
 
-plot_EWOC_by_sub_rads(sys.argv)
+from ewoc_cmdln import ewoc_parser, subrad_arg_to_list
+from ewoc_utils import plot_EWOC_by_sub_rads
+
+# Get arguments, cast subjet radii as a list
+kwargs=ewoc_parser.parse_args()
+
+plot_EWOC_by_sub_rads(load=False,
+                      print_every_n=10000,
+                      **vars(kwargs))
 
 # return
 # # Get command line input

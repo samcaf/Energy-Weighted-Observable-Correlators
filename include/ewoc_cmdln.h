@@ -36,7 +36,7 @@ double jetrad_cmdln(int argc, char* argv[]);
 double subrad_cmdln(int argc, char* argv[]);
 
 // ---------------------------------
-// Optional Options from Command Line
+// Optional Basic Options
 // ---------------------------------
 // Phase space options
 double ptmin_cmdln(int argc, char* argv[]);
@@ -44,5 +44,11 @@ double ptmax_cmdln(int argc, char* argv[]);
 
 // Misc. Options
 int verbose_cmdln(int argc, char* argv[]);
+
+// ---------------------------------
+// Advanced Options
+// ---------------------------------
+extern double _frag_temp_default;
+double fragtemp_cmdln(int argc, char* argv[]);
 
 #endif

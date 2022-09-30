@@ -1,7 +1,10 @@
 #!/usr/bin/python3
 
-"""ewoc_plot_utils.py: A set of utilites for reading and plotting
-EWOC information from text files."""
+"""ewoc_utils.py:
+A set of utilites for reading and plotting
+EWOC information from text files.
+"""
+
 __author__ = "Samuel Alipour-fard, Ian Moult, Wouter Waalewijn"
 __credits__ = ["Samuel Alipour-fard",
                "Ian Moult",
@@ -26,86 +29,92 @@ from functools import reduce
 
 from plot_utils import aestheticfig, modstyle
 
+from ewoc_cmdln import arg_to_str_dict
+
 # =====================================
 # Utilities for reading EWOC data  
 # =====================================
-def ewoc_folder(argv):
+def ewoc_folder(n_events, qcd_level, process_str,
+        jet_alg_int, jet_rad, *args, **kwargs):
     """
     Returns a folder used to store subjet pair information given
     a set of command line inputs
 
     Parameters
     ----------
-        argv :  A list containing the command line inputs.
+        Command line arguments; see ewoc_cmdln.py
 
     Returns
     -------
         string : The relevant folder.
 
     """
-    assert len(argv) > 6, "Invalid number of command line parameters.\n"\
-        + "    (found " + str(len(argv)) + ", expected 6-8)\n"
-    n_events    = argv[1]
-    qcd_level   = argv[2]
-    process_str = argv[3]
-    # no ptmin/max
-    jet_alg_int = argv[4]
-    jet_rad     = argv[5]
-
     return "../output/" + process_str + "_" + qcd_level\
         + f"/jetR{float(jet_rad):.1f}/".replace(".", "-")\
         + alg_to_string(jet_alg_int, latex=False) + "jet/"
 
 
-def ewoc_file_label(argv):
+def ewoc_file_label(n_events, qcd_level, process_str,
+        jet_alg_int, jet_rad, sub_alg_int, sub_rad,
+        **kwargs):
     """
     Returns a file used to store subjet pair information given
     a set of command line inputs
 
     Parameters
     ----------
-        argv :  A list containing the command line inputs.
+        Command line arguments; see ewoc_cmdln.py
 
     Returns
     -------
         string : The relevant file.
     """
-    assert len(argv) == 8, "Invalid number of command line parameters.\n"\
-        + "    (found " + str(len(argv)) + ", expected 9)\n"
-    n_events    = argv[1]
-    qcd_level   = argv[2]
-    process_str = argv[3]
-    # no ptmin/max
-    jet_alg_int = argv[4]
-    jet_rad     = argv[5]
-    sub_alg_int = argv[6]
-    sub_rad     = argv[7]
-
+    folder = ewoc_folder(n_events, qcd_level, process_str,
+                jet_alg_int, jet_rad, sub_alg_int, sub_rad,
+                **kwargs)
     filename = f"subR{float(sub_rad):.2f}".replace(".", "-") + "_"\
         + alg_to_string(sub_alg_int, latex=False) + "sub"\
         + "_" + str(n_events) + "evts"
 
-    return ewoc_folder(argv) + filename
+    for key in arg_to_str_dict.keys():
+        if key in kwargs.keys():
+            if kwargs[key] is not None: 
+                filename += '_' + arg_to_str_dict[key]\
+                         + str(kwargs[key]).replace(".", "-")
+
+    return folder + filename
 
 
-def get_hist_dict(argv):
-    file_prefix = ewoc_file_label(argv)
+def get_hist_dict(load=True, save=True, print_every_n=1000,
+                  **kwargs):
+    file_prefix = ewoc_file_label(**kwargs)
     data_dir = file_prefix + '.txt'
     hist_dir = file_prefix + '.npz'
 
-    try:
-        # Loading data if it exists
-        loaded_dict = np.load(hist_dir, allow_pickle=True)
-        hist_dict = {}
-        for key in loaded_dict.keys():
-            hist_dict[key] = loaded_dict[key][()]
-        del loaded_dict
+    if load: 
+        try:
+            # Loading data if it exists
+            print(f"Loading histogram data from {hist_dir}.")
+            loaded_dict = np.load(hist_dir, allow_pickle=True)
+            hist_dict = {}
 
-    except FileNotFoundError as e:
-        # Otherwise, creating the data
-        print(e, "Processing data now.")
-        data_dict = ewoc_text_to_dict(data_dir)
-        hist_dict = ewoc_dict_to_hists(data_dict) 
+            for key in loaded_dict.keys():
+                # Respect weird syntax from dicts saved w/```np.savez```
+                hist_dict[key] = loaded_dict[key][()]
+            del loaded_dict
+
+            return hist_dict
+
+        except FileNotFoundError as e:
+            print(e)
+
+    # Otherwise, creating the histogram data
+    print(f"Processing data from {data_dir}.")
+    data_dict = ewoc_text_to_dict(data_dir, print_every_n=print_every_n)
+    hist_dict = ewoc_dict_to_hists(data_dict) 
+
+    if save:
+        print(f"Saving histogram data to {hist_dir}.")
         np.savez(hist_dir, **hist_dict)
 
     return hist_dict
@@ -137,7 +146,7 @@ def alg_to_string(jet_alg_int, latex=True):
             return r'C/A'
         else:
             return 'ca'
-    elif jet_alg_int == [2, "2"]:
+    elif jet_alg_int in [2, "2"]:
         if latex:
             return r'anti-$k_T$'
         else:
@@ -151,31 +160,45 @@ def alg_to_string(jet_alg_int, latex=True):
 # Pairwise subjet observables (collinear limit) 
 # =====================================
 
+def obs_label(observable):
+    """Returns a label for plotting the given observable
+    in LaTeX form.
+    """
+    if observable == 'costheta':
+        return r'$\cos(\theta)$ '
+    elif observable == 'z':
+        return r'$z = (1 - \cos\theta)/2$ '
+    elif observable == 'mass':
+        return r'Mass (GeV)'
+    elif observable == 'formtime':
+        return r'Formation Time (GeV$^{-1}$)'
+
+
 def pair_costheta(Etot, z1, z2, costheta):
     return costheta
-
 
 def pair_z(Etot, z1, z2, costheta):
     return (1.-costheta)/2.
 
-
-def pair_formtime(Etot, z1, z2, costheta):
-    try:
-        return Etot * max(z1, z2) / pair_mass(Etot, z1, z2, costheta)
-    except ZeroDivisionError:
-        return np.nan
-
-
+def pair_m2(Etot, z1, z2, costheta):
+    return 2. * Etot**2. * z1 * z2 * (1.-costheta)
 
 def pair_mass(Etot, z1, z2, costheta):
-    return 2. * Etot**2. * z1 * z2 * (1.-costheta)
+    return np.sqrt(pair_m2(Etot, z1, z2, costheta))
+
+def pair_formtime(Etot, z1, z2, costheta):
+    return np.float64(Etot * max(z1, z2)) / pair_m2(Etot, z1, z2, costheta)
+    # try:
+    # except ZeroDivisionError:
+    #     return np.nan
 
 
 # =====================================
 # Formatting Data 
 # =====================================
 
-def ewoc_text_to_dict(filename, pair_obs=None):
+def ewoc_text_to_dict(filename, pair_obs=None,
+                      print_every_n=1000):
     """
     Reads in a text file in the form provided by pythia_ewocs(.cc).
     Returns a dict whose highest keys are 'info' and a list of subjet radii,
@@ -187,6 +210,12 @@ def ewoc_text_to_dict(filename, pair_obs=None):
     ----------
         filename : str
             Name of an ewoc formatted file.
+        pair_obs : list (of functions)
+            Functions of E_jet, z1, z2, and cos(theta) corresponding to
+            observables to include in the dict.
+        print_every_n : int
+            Print a message every time ```print_every_n``` events have
+            been considered.
 
     Returns
     -------
@@ -202,13 +231,13 @@ def ewoc_text_to_dict(filename, pair_obs=None):
     if not isinstance(pair_obs, list):
         # Making sure observables are stored in a list
         pair_obs = [pair_obs]
-    # storing observable names
+    # Storing observable names, assuming they start with "pair_"
     obsnames = [f'{obsname=}'.split(' ')[1][len("pair_"):]
                 for obsname in pair_obs]
 
     # Event headers/information: Event, Jet, or Subjet Pair
     event_headers = ['E', 'J', 'SP']
-    i_event = 0
+    i_event = 1
     E_jet = -1
 
     # Preparing to store data from text file
@@ -234,13 +263,6 @@ def ewoc_text_to_dict(filename, pair_obs=None):
                 data_dict[info[0]] = info[-1]
                 continue
 
-            # Event information
-            if info[0] == "E":
-                if i_event%1000 == 0 and i_event > 0:
-                    # Better logging
-                    print(f"Considered {i_event} events")
-                i_event+=1
-
             if info[0] == "J":
                 E_jet = float(info[1])
 
@@ -252,7 +274,14 @@ def ewoc_text_to_dict(filename, pair_obs=None):
                 data_dict['weights'].append(z1 * z2)
                 for obsname, obs in zip(obsnames, pair_obs):
                     data_dict[obsname].append(obs(E_jet, z1, z2, costheta))
-                
+
+            # Event information
+            if info[0] == "E":
+                if i_event%print_every_n == 0:
+                    # Better logging
+                    print(f"Considered {i_event} events")
+                i_event+=1
+               
     # After the loop, put weights and observables into numpy arrays
     for obsname in ['weights', *obsnames]:
         data_dict[obsname] = np.array(data_dict[obsname])
@@ -260,7 +289,8 @@ def ewoc_text_to_dict(filename, pair_obs=None):
     return data_dict
 
 
-def get_hist_edges_centers(obs_vals, weights, nbins, binspace):
+def get_hist_edges_centers(obs_vals, weights, nbins, binspace,
+                           lbin=None, rbin=None):
     """
     Takes in a set of values and an associated binning space.
     Returns (histogram heights, bin edges, bin centers)
@@ -271,6 +301,9 @@ def get_hist_edges_centers(obs_vals, weights, nbins, binspace):
         obs_vals :  The set of values to histogram.
         nbins :     The number of desired bins.
         binspace :  The desired bin space ('lin'/'linear' or 'log').
+        lbin, rbin: The left and right edges of the left and rightmost bins.
+                    If None, determined by the minimum or maximum
+                    values of the given observables, respectively.
 
     Returns
     -------
@@ -283,10 +316,16 @@ def get_hist_edges_centers(obs_vals, weights, nbins, binspace):
     o_vals = obs_vals if binspace in lin_labels\
              else np.log(obs_vals) if binspace in log_labels\
              else None
+    lbin = lbin if binspace in lin_labels or lbin is None\
+             else np.log(lbin)
+    rbin = rbin if binspace in lin_labels or rbin is None\
+             else np.log(rbin)
 
     # Making and storing weighted and normalized histogram
     hist, bin_edges = np.histogram(o_vals,
-            np.linspace(np.min(o_vals), np.max(o_vals), nbins+1),
+            np.linspace(np.min(o_vals) if lbin is None else lbin,
+                        np.max(o_vals) if rbin is None else rbin,
+                        nbins+1),
             weights=weights, density=True)
 
     if binspace in ['linear', 'lin']:
@@ -301,8 +340,12 @@ def get_hist_edges_centers(obs_vals, weights, nbins, binspace):
     return (hist, bin_edges, bin_centers)
 
 
+binedge_dict = {'mass': {'lbin': 1e-5, 'rbin': 2e3},
+                'formtime': {'lbin': 5e-4, 'rbin': 1e4}}
+
+
 def ewoc_dict_to_hists(data_dict, hist_dict=None,
-                       nbins=500, binspaces=['linear', 'log']):
+                       nbins=250, binspaces=['linear', 'log']):
     """
     Takes in the location of an ewoc formatted file.
     Returns a dict with (roughly)
@@ -352,7 +395,8 @@ def ewoc_dict_to_hists(data_dict, hist_dict=None,
             hist_dict[key] = {space:
                               get_hist_edges_centers(data_dict[key],
                                                      data_dict['weights'],
-                                                     nbins, space)
+                                                     nbins, space,
+                                                     **binedge_dict[key])
                               for space in binspaces}
 
     return hist_dict
@@ -381,25 +425,25 @@ lims = {'costheta': {('linear', 'linear'):
                       ('linear', 'log'): 
                         ((0, .25), (.1, 50)),
                       ('log', 'linear'):
-                        ((1e-6, 1e0), (0, .4)),
+                        ((3e-5, 1e0), (0, .5)),
                       ('log', 'log'):
                         ((1e-6, .2), (.1, 50))
                       },
          'mass'   : {('linear', 'linear'): 
-                        ((0, 5e5), (0, 1e-4)),
+                        ((0, 1e3), (0, 1.7e-2)),
                       ('linear', 'log'): 
                         ((0, 150), (1e-4, .12)),
                       ('log', 'linear'):
-                        ((1e-2, 5e5), (0, .4)),
+                        ((1e-1, 5e3), (0, .9)),
                       ('log', 'log'):
                         ((1.0, 1e3), (1e-4, .7))
                       },
         'formtime': {('linear', 'linear'): 
-                        ((0, 1e7), (0, 2e0)),
+                        ((0, 1e4), (0, 1e-4)),
                       ('linear', 'log'): 
                         ((0, 150), (1e-4, .12)),
                       ('log', 'linear'):
-                        ((1e-4, 1e5), (0, 1e0)),
+                        ((1e-3, 1e3), (0, 4e-1)),
                       ('log', 'log'):
                         ((1.0, 1e3), (1e-4, .7))
                       }
@@ -439,20 +483,6 @@ def get_colors_colorbar(vals):
 # =====================================
 # Old 
 # =====================================
-
-def obs_label(observable):
-    """Returns a label for plotting the given observable
-    in LaTeX form.
-    """
-    if observable == 'costheta':
-        return r'$\cos(\theta)$ '
-    elif observable == 'z':
-        return r'$z = (1 - \cos\theta)/2$ '
-    elif observable == 'mass':
-        return r'Mass (GeV)'
-    elif observable == 'formtime':
-        return r'Formation Time (GeV$^{-1}$)'
-
 
 def hist_title(observable, jet_radius, subjet_alg_int):
     """Title for a histogram plotting the EWOC for the given
@@ -583,7 +613,7 @@ def plot_hist_dict(hist_dicts, obsname,
     if show_analytic:
         ax[0].plot(xs, analytic, 'k')
         ax[1].plot(xs, np.ones(len(xs)), 'k')
-        ax[1].set_ylim((1e-1, 1e1))
+        ax[1].set_ylim((5e-2, 2e1))
 
     #plot_utils.stamp(text)
     if binspace == 'log':
@@ -591,56 +621,27 @@ def plot_hist_dict(hist_dicts, obsname,
 
     return
 
+def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
+                          **kwargs):
+    # Turning the keyword argument for subjet radii into a list
+    arg_to_list(kwargs, 'sub_rad')
 
-# def plot_single_subR(argv):
-#     file_prefix = ewoc_file_label(argv)
-
-#     data_dir = file_prefix + '.txt'
-#     hist_dir = file_prefix + '.npz'
-
-#     try:
-#         # Loading data if it exists
-#         loaded_dict = np.load(hist_dir, allow_pickle=True)
-#         hist_dict = {}
-#         for key in loaded_dict.keys():
-#             hist_dict[key] = loaded_dict[key][()]
-#         del loaded_dict
-
-#     except FileNotFoundError as e:
-#         # Otherwise, creating the data
-#         print(e.message())
-#         data_dict = ewoc_text_to_dict(data_dir)
-#         hist_dict = ewoc_dict_to_hists(data_dict) 
-#         np.savez(hist_dir, **hist_dict)
-
-#     # Plotting
-#     for obsname in obsnames:
-#         # yspace -- use itertools
-#         for binspace in ['linear', 'log']:
-#             # No logarithmic bins for costheta
-#             if binspace == 'log' and obsname == 'costheta':
-#                 continue
-#             plot_hist_dict(hist_dict)
-
-#     return
-
-
-def plot_EWOC_by_sub_rads(argv):
-    # Getting list of radii from command line argument
-    subjet_rads = argv[7].lstrip('[').rstrip(']').split(',')
-    subjet_rads = [float(R) for R in subjet_rads]
-    colors, cbar_data = get_colors_colorbar(subjet_rads)
-
-    # Getting observable dictionaries
+    # Getting observable dictionaries for all given subjet radii
+    # (accessed via ```kwargs['sub_rad']```)
     hist_dicts = []
-    for sub_rad in subjet_rads:
-        hist_dicts.append(get_hist_dict([*argv[:7], sub_rad]))
+    for rsub in kwargs['sub_rad']:
+        hist_dicts.append(get_hist_dict(**dict(kwargs, sub_rad=rsub),
+                                        load=load,
+                                        print_every_n=print_every_n))
 
     # Finding the shared observables in each dict
     obsnames = list(reduce(set.intersection,
                            [set(hist_dict['observables'])
                             for hist_dict in hist_dicts])
                    )
+
+    # Setting up colorbar
+    colors, cbar_data = get_colors_colorbar(kwargs['sub_rad'])
 
     # Plotting
     for obsname in obsnames:
@@ -675,86 +676,58 @@ def plot_EWOC_by_sub_rads(argv):
     plt.show()
 
     return
-    """Plots a set of EWOCs associated with a given
-    dictionary.
-    """
-    """
-    # Older example
-    if obsnames is None:
-        obsnames = hist_dict['observables']
 
-    # Grabbing subjet radii (numbers)
-    #subjet_rads = [rad for rad in hist_dict.keys()
-    #               if not isinstance(rad, str)]
-    # Setting up colors for plotting
-    # colors, cbar_data = get_colors_colorbar(subjet_rads)
 
-    # Plotting ewocs for each property in log and lin space
-    for propname in props:
-        for binspace in ['lin', 'log']:
-            xscale = 'linear' if binspace=='lin' else binspace
-            # Plotting linear and logarithmic observables
-            if propname == 'costhetas' and binspace == 'log':
+def plot_EWOC_by_frag_temps(load=True, print_every_n=1000,
+                            **kwargs):
+    # Turning the keyword argument for fragmentation temperature into a list
+    arg_to_list(kwargs, 'frag_temp')
+
+    # Getting observable dictionaries for all given temperatures 
+    # (accessed via ```kwargs['frag_temp']```)
+    hist_dicts = []
+    for temp in kwargs['frag_temp']:
+        hist_dicts.append(get_hist_dict(**dict(kwargs, frag_temp=temp),
+                                        load=load,
+                                        print_every_n=print_every_n))
+
+    # Finding the shared observables in each dict
+    obsnames = list(reduce(set.intersection,
+                           [set(hist_dict['observables'])
+                            for hist_dict in hist_dicts])
+                   )
+
+    # Setting up colorbar
+    colors, cbar_data = get_colors_colorbar(kwargs['frag_temp'])
+
+    # Plotting
+    for obsname in obsnames:
+        # yspace -- use itertools
+        for binspace in ['linear', 'log']:
+            # No logarithmic bins for costheta
+            if binspace == 'log' and obsname == 'costheta':
                 continue
-            for yscale in ['linear', 'log']:
-                # Using both linear and logarithmic y axes
-                fig, ax = plt.subplots()
-                for ic, sub_rad in enumerate(subjet_rads):
-                    # Looping over subjet radii
-                    ys, edges, xs = hist_dict[sub_rad][propname][binspace] 
-                    ax.plot(xs, ys, label=r'$R_{\rm sub}$='+str(sub_rad),
-                            color=colors[ic])
 
-                    # Setting axis limits
-                    if xlim == 'default':
-                        ax.set_xlim(lims[propname][(xscale, yscale)][0])
-                    elif xlim is not None:
-                        ax.set_xlim(xlim)
-                    elif xscale == 'log':
-                        ax.set_xlim(np.nanmin([e for e in edges if e>0]),
-                                    min(np.max(edges), 1e4))
-                    if ylim == 'default':
-                        ax.set_ylim(lims[propname][(xscale, yscale)][1])
-                    elif ylim is not None:
-                        ax.set_ylim(ylim)
-                    elif yscale == 'log':
-                        ax.set_ylim(np.nanmin([y for y in ys if y>0]),
-                                    np.max(ys))
-                if show_analytic and (propname == 'costhetas' or
-                                      propname == 'zs'):
-                    plot_eec_analytic(fig, ax, propname, binspace)
-                # Other plot setup
-                try:
-                    ax.set_xscale(xscale)
-                    ax.set_yscale(yscale)
-                except ValueError as e:
-                    # Data with no positive values cannot be log scaled
-                    print(f"Error message for {propname},"
-                          + f"xscale={xscale}, yscale={yscale}:\n\n")
-                    print(e)
-                    continue
-                #ax.legend()
-                cbar = fig.colorbar(cbar_data)
-                cbar.ax.set_ylabel(r'$R_{\rm sub}$')
+            # Set up figure, axis limits
+            fig, ax = aestheticfig(xlabel=obs_label(obsname),
+                                   ylabel='EWOC',
+                                   title=None,
+                                   showdate=False,
+                                   xlim=lims[obsname][(binspace, 'linear')][0],
+                                   ylim=lims[obsname][(binspace, 'linear')][1],
+                                   ratio_plot=(obsname in ['costheta',
+                                                           'z']),
+                                   labeltext='EWOC')
+            # Setting up color cycle
+            [a.set_prop_cycle((cycler(color=colors))) for a in ax]
 
-                ax.set_title(hist_title(propname, hist_dict['radius'],
-                                          hist_dict['subjet algorithm']))
+            # Plotting observable EWOC for each subjet radius
+            plot_hist_dict(hist_dicts, obsname,
+                           binspace=binspace,
+                           ax=ax)
 
-                fig.savefig('figs/' + hist_dict['process'] + '_'
-                            + hist_dict['level'] + '/'
-                            # e.g. figs/qcd_parton
-                            + propname+"_ewoc_sub"
-                            + hist_dict['subjet algorithm']
-                            + '_' + xscale + 'x'
-                            + '_' + yscale + 'y'
-                            + "_R" +
-                            str("{:.1f}".format(float(hist_dict['radius'])))
-                            + "_" + str(hist_dict['nEvents'])
-                            + "_" + hist_dict['level'] + "_"
-                            + hist_dict['process'] + 'evts.pdf',
-                            bbox_inches='tight')
+            # Adding subjet radius color bar
+            cbar = fig.colorbar(cbar_data, ax=np.array(ax).ravel().tolist())
+            cbar.ax.set_ylabel(r'$T_{\rm frag}$')
 
-                # plt.show()
-                
-    return
-    """
+    plt.show()

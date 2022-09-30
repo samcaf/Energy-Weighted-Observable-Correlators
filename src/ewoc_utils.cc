@@ -32,6 +32,7 @@
 #include "fastjet/ClusterSequence.hh"
 
 #include "../include/ewoc_utils.h"
+#include "../include/ewoc_cmdln.h"
 
 using namespace Pythia8;
 using namespace fastjet;
@@ -110,20 +111,19 @@ std::vector<T> arange(T start, T stop, T step /*= 1*/) {
 * @brief: Returns a folder name associated with ewoc information
 *         for the given params.
 *
-* @param: jet_alg_int       Integer describing the (sub)jet algorithm;
-* @param: jet_rad           Double describing the jet radius;
-* @param: qcd_level         String describing the level of QCD under
-*                           consideration ("parton" or "hadron");
-* @param: process_str       String describing the hard process under
-*                           consideration.
+* @param: argc/argv          Command line input.
 *
-* @return: string            Label for the file.
+* @return: string            Folder name.
 */
-std::string ewoc_folder(int jet_alg_int, double jet_rad,
-                        std::string qcd_level,
-                        std::string process_str) {
-    std::string process_folder = "output/" + process_str + "_" + qcd_level + "/";
+std::string ewoc_folder(int argc, char* argv[]) {
+    // Getting arguments from command line input
+    std::string qcd_level     = level_cmdln(argc, argv);
+    std::string process_str   = process_cmdln(argc, argv);
+    int         jet_alg_int   = jetalg_cmdln(argc, argv);
+    double      jet_rad       = jetrad_cmdln(argc, argv);
+
     // Making directory if it does not exist
+    std::string process_folder = "output/" + process_str + "_" + qcd_level + "/";
     // https://pubs.opengroup.org/onlinepubs/009695399/functions/mkdir.html
     // also, https://stackoverflow.com/a/21589609
     mkdir(process_folder.c_str(),
@@ -159,24 +159,22 @@ std::string ewoc_folder(int jet_alg_int, double jet_rad,
 * @brief: Returns a label for a file associated with ewoc information
 *         for the given params.
 *
-* @param: (sub)jet_alg_int  Integer describing the (sub)jet algorithm;
-* @param: (sub)jet_rad      Double describing the jet radius;
-* @param: n_events          Integer describing the number of events;
-* @param: qcd_level         String describing the level of QCD under
-*                           consideration ("parton" or "hadron");
-* @param: process_str       String describing the hard process under
-*                           consideration.
+* @param: argc/argv          Command line input.
 *
 * @return: string            Label for the file.
 */
-std::string ewoc_file_label(int jet_alg_int, double jet_rad,
-                            int sub_alg_int, double sub_rad,
-                            int n_events,
-                            std::string qcd_level,
-                            std::string process_str) {
-    // Directory:
-    std::string folder_name = ewoc_folder(jet_alg_int, jet_rad,
-                                          qcd_level, process_str);
+std::string ewoc_file_label(int argc, char* argv[]) {
+    // Getting directory:
+    std::string folder_name = ewoc_folder(argc, argv);
+
+    // Getting arguments from command line input
+    // Required basic settings
+    int         n_events      = nevents_cmdln(argc, argv);
+    int         sub_alg_int   = subalg_cmdln(argc, argv);
+    double      sub_rad       = subrad_cmdln(argc, argv);
+    // Optional basic settings
+    double      pt_min        = ptmin_cmdln(argc, argv);
+    double      pt_max        = ptmax_cmdln(argc, argv);
 
     // Filename:
     std::string sub_label =
@@ -187,6 +185,17 @@ std::string ewoc_file_label(int jet_alg_int, double jet_rad,
 
     std::string ewoc_file = "subR" + str_round(sub_rad, 2) + sub_label
                             + "_" + std::to_string(n_events) + "evts";
+
+    // Optional basic arguments
+    if (pt_min != -1)
+        ewoc_file += "_ptmin"+str_round(pt_min, 1);
+    if (pt_max != std::numeric_limits<double>::max())
+        ewoc_file += "_ptmax"+str_round(pt_max, 1);
+
+    // Optional advanced arguments
+    // Coming soon!
+
+    // Final filename
     ewoc_file = periods_to_hyphens(ewoc_file);
     ewoc_file += ".txt";
 

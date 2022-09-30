@@ -88,6 +88,7 @@ int main (int argc, char* argv[]){
     int         verbose       = verbose_cmdln(argc, argv);
 
     // Advanced Settings
+    double      frag_temp     = fragtemp_cmdln(argc, argv);
 
     // ---------------------------------
     // Default/backwards compatible arguments
@@ -109,12 +110,9 @@ int main (int argc, char* argv[]){
     JetAlgorithm jet_alg = JetAlgorithm(jet_alg_int);
     JetAlgorithm sub_alg = JetAlgorithm(sub_alg_int);
 
-    //Open appropriate file
+    // Open up an appropriate file
     std::ofstream file;
-    std::string filename = ewoc_file_label(
-                    jet_alg_int, jet_rad,
-                    sub_alg_int, sub_rad,
-                    n_events, qcd_level, process_str);
+    std::string filename = ewoc_file_label(argc, argv);
     std::cout << filename;
     file.open(filename);
 
@@ -207,6 +205,13 @@ int main (int argc, char* argv[]){
         pythia.readString("Stat:showErrors = off");
     }
     pythia.init();
+
+    // Advanced Options
+    if (frag_temp != _frag_temp_default) {
+        pythia.readString("StringPT:thermalModel = on");
+        pythia.readString("StringPT:temperature = " + std::to_string(frag_temp));
+    }
+
 
     // ---------------------------------
     // Analyzing events

@@ -36,6 +36,8 @@
 using namespace Pythia8;
 using namespace fastjet;
 
+#include "../include/ewoc_cmdln.h"
+
 
 // =====================================
 // Global Flags
@@ -69,15 +71,9 @@ std::vector<T> arange(T start, T stop, T step = 1);
 // ---------------------------------
 // Plotting/Labelling Utilities
 // ---------------------------------
-std::string ewoc_folder(int jet_alg_int, double jet_rad,
-                        std::string qcd_level,
-                        std::string process_str);
+std::string ewoc_folder(int argc, char* argv[]);
 
-std::string ewoc_file_label(int jet_alg_int, double jet_rad,
-                            int sub_alg_int, double sub_rad,
-                            int n_events,
-                            std::string qcd_level,
-                            std::string process_str);
+std::string ewoc_file_label(int argc, char* argv[]);
 
 // ---------------------------------
 // Error utilities

@@ -1,0 +1,7 @@
+#!/usr/local/bin/fish
+
+for temp in .1 .2 .3 .4 .5
+  ./pythia_ewocs -n 50000 -l hadron -p qcd -j 2 -s 1 -R inf -r 0. --pt_min 50 --pt_max 3000 --frag_temp $temp
+end
+
+# python

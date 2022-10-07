@@ -85,26 +85,13 @@ int main (int argc, char* argv[]){
     double      pt_min        = ptmin_cmdln(argc, argv);
     double      pt_max        = ptmax_cmdln(argc, argv);
 
+    double      E_cm          = Ecm_cmdln(argc, argv);
+    std::string s_channel     = schannel_cmdln(argc, argv);
+
     int         verbose       = verbose_cmdln(argc, argv);
 
     // Advanced Settings
     double      frag_temp     = fragtemp_cmdln(argc, argv);
-
-    // ---------------------------------
-    // Default/backwards compatible arguments
-    // ---------------------------------
-    if (argc == 10){
-        //Convert command line parameters to variables
-        n_events    = atoi(argv[1]);
-        qcd_level   = argv[2];
-        process_str = argv[3];
-        jet_alg_int = atoi(argv[4]);
-        jet_rad     = atof(argv[5]);
-        sub_alg_int = atoi(argv[6]);
-        sub_rad     = atof(argv[7]);
-        pt_min      = atof(argv[8]);
-        pt_max      = atof(argv[9]);
-    }
 
     // Set up (sub)jet algorithm
     JetAlgorithm jet_alg = JetAlgorithm(jet_alg_int);
@@ -121,7 +108,7 @@ int main (int argc, char* argv[]){
          << "# EWOC information\n"
          << "# ==================================\n"
          << "# Function call ```";
-    while( --argc ) file << *(++argv) << " ";
+    while( argc-- ) file << *(argv++) << " ";
     file << "```\n\n"
          << "# Process:\n"
          << "process_str = " + process_str << "\n"
@@ -156,29 +143,38 @@ int main (int argc, char* argv[]){
 
     // Give process information to Pythia
     if (process_str == "quark") {
-        std::cout << "pp ->  q qbar at 4 Tev\n";
+        std::cout << "pp ->  q qbar, \n";
         pythia.readString("Beams:idA = 2212");
         pythia.readString("Beams:idB = 2212");
-        pythia.readString("Beams:eCM = 4000");
         pythia.readString("HardQCD:gg2gg = on");
     } else if (process_str == "gluon") {
-        std::cout << "pp -> gg at 4 TeV\n";
+        std::cout << "pp -> gg, \n";
         pythia.readString("Beams:idA = 2212");
         pythia.readString("Beams:idB = 2212");
-        pythia.readString("Beams:eCM = 4000");
         pythia.readString("HardQCD:gg2qqbar = on");
     } else if (process_str == "qcd") {
-        std::cout << "ee -> hadrons at 4 TeV\n";
+        std::cout << "ee -> hadrons, \n";
         pythia.readString("Beams:idA = 11");
         pythia.readString("Beams:idB = -11");
-        pythia.readString("Beams:eCM = 4000");
-        pythia.readString("WeakSingleBoson:ffbar2ffbar(s:gmZ) = on");
+        // gm, Z, or gmZ in the s-channel
+        pythia.readString("WeakSingleBoson:ffbar2ffbar(s:"
+                + s_channel + ") = on");
     } else if (process_str == "w") {
-        std::cout << "ee -> W W at 4 TeV\n";
+        std::cout << "ee -> W W, \n";
         pythia.readString("Beams:idA = 11");
         pythia.readString("Beams:idB = -11");
-        pythia.readString("Beams:eCM = 4000");
         pythia.readString("WeakDoubleBoson:ffbar2WW = on");
+    }
+
+    // Beam energy
+    if (E_cm != _Ecm_default) {
+        std::cout << "beam E_cm: "
+                  << std::to_string(E_cm/1000.) << " TeV.\n";
+        pythia.readString("Beams:eCM = " + std::to_string(E_cm));
+    }
+    else {
+        std::cout << "beam E_cm: 4 TeV.\n";
+        pythia.readString("Beams:eCM = 4000");
     }
 
     // Parton or hadron level
@@ -204,14 +200,16 @@ int main (int argc, char* argv[]){
         pythia.readString("Stat:showProcessLevel = off");
         pythia.readString("Stat:showErrors = off");
     }
-    pythia.init();
 
     // Advanced Options
     if (frag_temp != _frag_temp_default) {
+        std::cout << "Turning on thermal model for string pT with temperature "
+                  << std::to_string(frag_temp) << "\n";
         pythia.readString("StringPT:thermalModel = on");
         pythia.readString("StringPT:temperature = " + std::to_string(frag_temp));
     }
 
+    pythia.init();
 
     // ---------------------------------
     // Analyzing events

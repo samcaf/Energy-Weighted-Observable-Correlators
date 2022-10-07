@@ -42,6 +42,12 @@ double subrad_cmdln(int argc, char* argv[]);
 double ptmin_cmdln(int argc, char* argv[]);
 double ptmax_cmdln(int argc, char* argv[]);
 
+extern double _Ecm_default;
+double Ecm_cmdln(int argc, char* argv[]);
+
+extern std::string _schannel_default;
+std::string schannel_cmdln(int argc, char* argv[]);
+
 // Misc. Options
 int verbose_cmdln(int argc, char* argv[]);
 

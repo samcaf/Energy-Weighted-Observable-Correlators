@@ -4,6 +4,8 @@ from math import atan2, degrees
 import matplotlib.pyplot as plt
 import numpy as np
 
+from matplotlib.gridspec import GridSpec, GridSpecFromSubplotSpec
+
 from matplotlib import container
 from matplotlib.lines import Line2D
 from matplotlib.legend_handler import HandlerErrorbar
@@ -35,10 +37,10 @@ plt.rc('figure', titlesize=_large_size)   # fontsize of the figure title
 # ---------------------------------------------------
 # Line plot style
 style_solid = {'ls':'-', 'lw':2}
-style_dashed = {'ls':'--', 'lw':2}
+style_dashed = {'ls':'--', 'lw':1.5}
 
 # Scatter plot style
-style_scatter = {'s':1, 'alpha':.9}
+style_scatter = {'s':2.0, 'alpha':.9}
 
 # Errorbar plot styles
 style_yerr = {'xerr':0, 'markersize':2.5, 'fmt':'s',
@@ -57,11 +59,12 @@ modstyle_ps = {'lw':2, 'capsize':2, 'capthick':1.5, 'markersize':5,
 # ---------------------------------------------------
 # Basic figure type:
 # ---------------------------------------------------
+
 def aestheticfig(xlabel='x', ylabel=r'Probability Density',
                  title=None, showdate=True,
                  xlim=(0, 1), ylim=(0, 1), ylim_ratio=(0.5, 2.),
                  ratio_plot=True, ylabel_ratio='Ratio',
-                 labeltext='JetMC'):
+                 labeltext=None):
     """Creates a figure and associated axes. Can be used to
     produce a figure with a subplot which is, for example,
     associated with a ratio.
@@ -184,6 +187,205 @@ def aestheticfig(xlabel='x', ylabel=r'Probability Density',
 
     return fig, axes
 
+
+def aesthetic_N_by_M(xlabel='x', ylabel=r'Probability Density',
+                 nrows=2, ncols=2,
+                 title=None, showdate=True,
+                 xlim=(0, 1), ylim=(0, 1), ylim_ratio=(0.5, 2.),
+                 ratio_plot=True, ylabel_ratio='Ratio',
+                 labeltext=None,
+                 colnames=None,
+                 rownames=None):
+    """Creates a figure and associated axes. Can be used to
+    produce a figure with a subplot which is, for example,
+    associated with a ratio.
+
+    Parameters
+    ----------
+    xlabel : str
+        xlabel of the plot.
+    ylabel : str
+        ylabel of the plot.
+    nrows : int
+        number of rows in the plot.
+    ncols : int
+        number of columns in the plot.
+    title : str
+        title of the plot.
+    showdate : bool
+        If True, adds a date to the upper right of the plot.
+    xlim : tuple
+        The x limits of the plot.
+    ylim : tuple
+        The y limits of the plot.
+    ylim_ratio : tuple
+        The y limits of the ratio subplot.
+    ratio_plot : bool
+        Determines whether there is an additional subplot
+        for ratio plotting.
+    ylabel_ratio : str
+        ylabel of the ratio subplot, if it exists.
+    colnames : list of str
+        labels of the columns for the grid of plots.
+    rownames : list of str
+        labels of the rows for the grid of plots.
+
+    Returns
+    -------
+    Figure, axes.Axes
+        The figure and axes/subplots specified by the
+        above parameters.
+    """
+    # aesthetic options
+    # fig_width = 5.
+    # golden_mean = (np.sqrt(5)-1.0)/2.0
+    # fig_height = fig_width/golden_mean
+    fig_width = 6.4 * 1.5
+    fig_height = 4.8 * 1.5
+    figsize = (fig_width, fig_height)
+
+    nsubplots = 2 if ratio_plot else 1
+
+    gridspec_kw = {'height_ratios': (3.5, 1) if ratio_plot else (1,),
+                   'hspace': 0.0}
+
+    # Get figure
+    fig = plt.figure(figsize=figsize)
+    axes = []
+
+    # Set up grid of subplots
+    gs_full = GridSpec(nrows, ncols, wspace=0.3, hspace=0.3)
+
+    for irow in range(nrows):
+        for jcol in range(ncols):
+            if ratio_plot:
+               gs_ratio=GridSpecFromSubplotSpec(2, 1,
+                                 hspace=0.0,
+                                 height_ratios=(3.5, 1),
+                                 subplot_spec=gs_full[irow,jcol])
+               ax_main = fig.add_subplot(gs_ratio[0])
+               ax_ratio = fig.add_subplot(gs_ratio[1])
+               axes.append(ax_main)
+               axes.append(ax_ratio)
+            else:
+                axes.append(fig.add_subplot(gs_full[irow,jcol]))
+
+    # reesetting indices in case we have row and column labels
+    irow, jcol = 0, 0
+
+    # Setting up Axes 
+    for i, ax in enumerate(axes):
+        # ---------------------------------
+        # Universal settings
+        # ---------------------------------
+        # x- and y-limits 
+        ax.set_xlim(*xlim)
+        ax.set_ylim(*ylim)
+
+        # Ticks
+        ax.minorticks_on()
+        ax.tick_params(top=True, right=True, bottom=True,
+                       left=True, direction='in', which='both')
+        
+        # ---------------------------------
+        # Local settings
+        # ---------------------------------
+        # Location properties of different axes
+        is_ratio = (ratio_plot and i%2 == 1)
+        is_leftmost = (i%nrows == 0) if not ratio_plot\
+            else (i%(2*nrows) in [0,1])
+        is_bottom = (i >= len(axes) - nrows) if not ratio_plot\
+            else (i >= len(axes) - 2.*nrows and is_ratio)
+        is_top = (i < nrows) if not ratio_plot\
+            else (i < 2*nrows and not is_ratio)
+
+        # Ratio plots have different y-axis settings 
+        if is_ratio:
+            ax.set_ylim(ylim_ratio)
+            ax.set_yscale('log')
+            ax.tick_params(axis='y')
+        elif ratio_plot and not is_ratio:
+            ax.tick_params(labelbottom=False)
+
+        # Lowest level plots get x-axis labels
+        if is_bottom:
+            ax.set_xlabel(xlabel)
+
+        # Leftmost plots get y-axis labels
+        if is_leftmost:
+            ax.set_ylabel(ylabel_ratio if is_ratio else ylabel,
+                          labelpad=0 if is_ratio else 5,
+                          fontsize=_bigger_size if not is_ratio\
+                            else _small_size)
+            if not is_ratio and rownames is not None:
+                ax.annotate(rownames[irow], xy=(0, 0.5),
+                        xytext=(-ax.yaxis.labelpad - 10, 0),
+                        xycoords=ax.yaxis.label, textcoords='offset points',
+                        size='large', ha='right', va='center',
+                        rotation=90)
+                irow+=1
+
+
+        if is_top and colnames is not None:
+            ax.annotate(colnames[jcol], xy=(0.5, 1), xytext=(0, 5),
+                        xycoords='axes fraction', textcoords='offset points',
+                        size='large', ha='center', va='baseline')
+            jcol+=1
+
+    # Extra plot information
+    pad = .01
+
+    if showdate:
+        # Including date
+        axes[0].text(
+            x=1,
+            y=1.005+pad,
+            s=date.today().strftime("%m/%d/%y"),
+            transform=axes[0].transAxes,
+            ha="right",
+            va="bottom",
+            fontsize=_medium_size * 0.95,
+            fontweight="normal"
+        )
+
+    if labeltext is not None:
+        # Extra primary label
+        axes[0].text(
+            x=-0.2,
+            y=1.005+pad,
+            s=labeltext,
+            transform=axes[0].transAxes,
+            ha="left",
+            va="bottom",
+            fontsize=_medium_size * 1.5,
+            fontweight="bold",
+            fontname="DIN Condensed"
+        )
+
+    if title is not None:
+        # Main title
+        axes[0].text(
+            x=1.1,
+            y=1.15+pad,
+            s=title,
+            transform=axes[0].transAxes,
+            ha="center",
+            va="bottom",
+            fontsize=_medium_size * 1.5,
+            fontstyle="italic",
+            fontname="Arial"
+        )
+
+    plt.tight_layout()
+
+    if rownames is not None:
+        fig.subplots_adjust(left=0.15)
+    # if colnames is not None:
+    #     fig.subplots_adjust(top=0.95)
+
+    return fig, axes
+
+
 # ---------------------------------------------------
 # Putting text on figures:
 # ---------------------------------------------------
@@ -199,6 +401,28 @@ def set_figtext(fig, text, loc, rightjustify=False, color='black'):
     t.set_bbox(dict(facecolor='white', alpha=0.9,
                     edgecolor='lightgrey',
                     boxstyle="round,pad=0.35"))
+
+# function to add a stamp to figures
+def stamp(left_x, top_y, ax,
+          delta_y=0.075,
+          textops_update=None,
+          **kwargs):
+
+    # text options
+    textops = {'horizontalalignment': 'left',
+               'verticalalignment': 'center',
+               'fontsize': 8.5,
+               'transform': ax.transAxes}
+    if isinstance(textops_update, dict):
+        textops.update(textops_update)
+
+    # add text line by line
+    for i in range(len(kwargs)):
+        y = top_y - i*delta_y
+        t = kwargs.get('line_' + str(i))
+        if t is not None:
+            ax.text(left_x, y, t, **textops)
+
 
 
 #########################################################

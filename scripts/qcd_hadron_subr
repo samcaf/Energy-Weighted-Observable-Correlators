@@ -1,9 +1,0 @@
-#!/usr/local/bin/fish
-
-for rsub in 0.0 0.1 0.2 0.3 0.4 0.5
-  ./pythia_ewocs -n 50000 -l hadron -p qcd -j 2 -s 1 -R 1.0 -r $rsub --pt_min 50 --pt_max 3000
-end
-
-cd python
-python3 plot_pythia_ewocs.py -n 50000 -l hadron -p qcd -j 2 -s 1 -R 1.0 -r [0.0,0.1,0.2,0.3,0.4,0.5] --pt_min 50 --pt_max 3000
-cd ..

@@ -146,7 +146,7 @@ std::string ewoc_folder(int argc, char* argv[]) {
                         S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
     // If any of the above directories did not exist, let us know
-    if (new_dir)
+    if (new_dir == 1)
         std::cout << "\n\nDirectory not found; "
                   << "making new directory to store EWOC files.\n";
 
@@ -176,6 +176,11 @@ std::string ewoc_file_label(int argc, char* argv[]) {
     double      pt_min        = ptmin_cmdln(argc, argv);
     double      pt_max        = ptmax_cmdln(argc, argv);
 
+    double      E_cm          = Ecm_cmdln(argc, argv);
+
+    // Advanced Settings
+    double      frag_temp     = fragtemp_cmdln(argc, argv);
+
     // Filename:
     std::string sub_label =
         (sub_alg_int == 2) ? "_aktsub" : (
@@ -191,9 +196,13 @@ std::string ewoc_file_label(int argc, char* argv[]) {
         ewoc_file += "_ptmin"+str_round(pt_min, 1);
     if (pt_max != std::numeric_limits<double>::max())
         ewoc_file += "_ptmax"+str_round(pt_max, 1);
+    if (E_cm != _Ecm_default)
+        ewoc_file += "_Ecm"+str_round(E_cm, 1);
 
     // Optional advanced arguments
-    // Coming soon!
+    if (frag_temp != _frag_temp_default) {
+        ewoc_file += "_temp"+str_round(frag_temp, 1);
+    }
 
     // Final filename
     ewoc_file = periods_to_hyphens(ewoc_file);

@@ -6,7 +6,7 @@ import argparse
 # =====================================
 
 # Setup
-ewoc_parser=argparse.ArgumentParser('Plot EWOC data from Pythia and FastJet.')
+ewoc_parser=argparse.ArgumentParser('Plot EWOC data from Pythia and FastJet')
 
 # ---------------------------------
 # Basic Options (Required)
@@ -35,14 +35,27 @@ ewoc_parser.add_argument("-s", "--sub_alg",
             help="Subjet algorithm (0 [kt], 1 [ca], 2 [antikt]);",
             required=True)
 ewoc_parser.add_argument("-R", "--jet_rad", 
-            dest="jet_rad", type=float,
+            dest="jet_rad",  # No type, so that it can be a list 
             help="Jet radius (can be 'inf' or 'infty');",
             required=True)
 ewoc_parser.add_argument("-r", "--sub_rad", 
-            dest="sub_rad", 
+            dest="sub_rad",  # No type, so that it can be a list
             help="Subjet radius (or radii);",
             required=True)
 
+# ---------------------------------
+# Info for optional variables
+# ---------------------------------
+
+default_args    = {'pt_min': 0,
+                   'pt_max': np.inf,
+                   'E_cm':   4000,
+                   'temp': None}
+
+arg_to_str_dict = {'pt_min': 'ptmin',
+                   'pt_max': 'ptmax',
+                   'E_cm':   'Ecm',
+                   'temp':   'temp',}
 
 # ---------------------------------
 # Basic Options (Optional)
@@ -51,12 +64,18 @@ ewoc_parser.add_argument("-r", "--sub_rad",
 ewoc_parser.add_argument("--pt_min", 
             dest="pt_min", type=float,
             help="Minimum value of jet p_T;",
-            default=0,
+            default=default_args['pt_min'],
             required=False)
 ewoc_parser.add_argument("--pt_max", 
             dest="pt_max", type=float,
             help="Maximum value of jet p_T;",
-            default=np.Inf,
+            default=default_args['pt_max'],
+            required=False)
+
+ewoc_parser.add_argument("--E_cm", "-E", 
+            dest="E_cm", type=float,
+            help="Center of mass energy;",
+            default=default_args['E_cm'],
             required=False)
 
 
@@ -64,22 +83,14 @@ ewoc_parser.add_argument("--pt_max",
 # Advanced Options (Optional)
 # ---------------------------------
 ewoc_parser.add_argument("-T", "--frag_temp", 
-            dest="temp", type=float,
+            dest="temp",
             help="Temperature of string fragmentation, off by default; see:"\
              +"    * https://pythia.org/latest-manual/Fragmentation.html#anchor25;"\
              +"    * https://arxiv.org/pdf/1610.09818.pdf;",
-            default=None,
+            default=default_args['temp'],
             required=False)
 
 
-
-# ---------------------------------
-# Names for optional variables
-# ---------------------------------
-
-arg_to_str_dict = {'pt_min': 'ptmin',
-                   'pt_max': 'ptmax',
-                   'temp':   'temp'}
 
 # =====================================
 # Other Command Line Utilities

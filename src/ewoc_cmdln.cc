@@ -36,33 +36,6 @@ std::string flag_text = R"(
 
 
 std::string help_text = R"(
-// =====================================
-// Old Syntax
-// =====================================
-The old syntax is
-
-    ```./subjet_ewocs [number of events] [qcd_level] [process] [jet algorithm] [jet radius] [subjet algorithm][subjet radius][pt_min] [pt_max]```.
-
-This is supported for now.
-
-
-Example command:
-
-    ```./pythia_ewocs 5000 parton qcd 1 1.0 0 0.10 50 3000```.
-
-This produces 5000 parton-level QCD events for e+e- => hadrons, with jets (50 GeV < pT < 3 TeV) clustered with kT and radius 1.0, and subjets clustered with C-A and radius 0.1.
-
-
-To plot, run pythia_ewocs_plot.py with the same arguments except pt_min/max For example:
-
-    ```python3 plot_pythia_ewocs.py 5000 parton qcd 1 1.0 0 0.10```
-
-plots the output of the binary (```./pythia_ewocs```) above.
-The python plotting can also take in a list of subjet radii:
-    ```python3 plot_pythia_ewocs.py 5000 parton qcd 1 1.0 0 [0.10,0.20,0.30]```
-
-
-
 ###################################
 # EWOC Parameters:
 ###################################
@@ -89,14 +62,17 @@ The python plotting can also take in a list of subjet radii:
   [<--pt_max> <double>] :                       Maximum value of jet p_T;
 
   # Misc. Options
-  [<--verbose> <int>] :                         Verbosity (coming soon);
+  [<--verbose|-v> <int>] :                      Verbosity;
 
 
   # ================================================
   # Advanced Options (Optional):
   # ================================================
+  # Fragmentation Temperature
+  [<--frag_temp|-T> <double>] :                 Temperature associated with string
+                                                fragmentation;
+
   # Coming soon!
-  # Temperature
   # Rope related parameters
 
 
@@ -137,6 +113,12 @@ The python plotting can also take in a list of subjet radii:
     python3 plot_pythia_ewocs.py -n 50000 -l parton -p qcd -j 2 -s 1 -R 1.0 -r [0.0,0.1,0.2,0.3,0.4,0.5] --pt_min 50 --pt_max 3000
     cd ..
   ```
+
+  # See the scripts folder and the python folder for event generation and plotting with more options
+  ```
+  ls scripts/*
+  ls python/*.sh
+  ```
 )";
 
 
@@ -171,6 +153,11 @@ int checkCmdInputs(int argc, char* argv[]) {
     double      pt_min        = ptmin_cmdln(argc, argv);
     double      pt_max        = ptmax_cmdln(argc, argv);
 
+    double      E_cm          = Ecm_cmdln(argc, argv);
+    std::string s_channel     = schannel_cmdln(argc, argv);
+
+    int         verbose       = verbose_cmdln(argc, argv);
+
     // Advanced Settings
     double      frag_temp     = fragtemp_cmdln(argc, argv);
 
@@ -186,32 +173,17 @@ int checkCmdInputs(int argc, char* argv[]) {
     }
 
     // ---------------------------------
-    // Default/backwards compatible arguments
+    // Checks on input parameters
     // ---------------------------------
-    if (argc == 10 and n_events == -1){
-        //Convert command line parameters to variables
-        n_events    = atoi(argv[1]);
-        qcd_level   = argv[2];
-        process_str = argv[3];
-        jet_alg_int = atoi(argv[4]);
-        jet_rad     = atof(argv[5]);
-        sub_alg_int = atoi(argv[6]);
-        sub_rad     = atof(argv[7]);
-        pt_min      = atof(argv[8]);
-        pt_max      = atof(argv[9]);
-    }
-
-    // If not backwards compatible, no help message, and there aren't enough arguments
-    else if (argc < 19) {
+    // If we don't have enough arguments
+    if (argc < 19) {
         std::cout << "Missing required command line arguments "
         << "(received " << argc-1 << ").\n"
         << "Use ```--help``` for more detail.\n";
         return 1;
     }
 
-    // ---------------------------------
-    // Checks on input parameters
-    // ---------------------------------
+    // Event generator checks
     if (n_events <= 0){
         std::cout << "Number of events must be a positive integer.\n";
         return 1;
@@ -258,9 +230,35 @@ int checkCmdInputs(int argc, char* argv[]) {
         return 1;
     }
 
+    if (E_cm != _Ecm_default and E_cm <= 0){
+        std::cout << "Center of mass energy must be positive.\n";
+        return 1;
+    }
+
+    if (s_channel != _schannel_default) {
+        if (process_str != "qcd") {
+            std::cout << "No s channel production for desired process ("
+               << process_str << ").";
+            return 1;
+        }
+        else if (s_channel != "gm" and s_channel != "Z") {
+            std::cout << "Invalid s channel option: " << s_channel;
+            return 1;
+        }
+    }
+
+    // Verbosity
+    if (verbose >= 1) {
+        std::cout << "Function call:\n    ";
+        while( argc-- ) std::cout << *(argv++) << " ";
+        std::cout << "\n\n";
+    }
+
     // Advanced Options
     if (frag_temp != _frag_temp_default and qcd_level != "hadron") {
-        std::cout << "Thermal string fragmentation requires hadron level event generation.\n";
+        std::cout << "Thermal string fragmentation "
+                  << "(given as " << std::to_string(frag_temp)
+                  << ") requires hadron level event generation.\n";
         return 1;
     }
 
@@ -390,11 +388,34 @@ double ptmax_cmdln(int argc, char* argv[]) {
     return std::numeric_limits<double>::max();
 }
 
+
+double _Ecm_default = -1;
+double Ecm_cmdln(int argc, char* argv[]) {
+    for(int iarg=0;iarg<argc;iarg++) {
+        // Event Generator Parameters
+        if(strcmp(argv[iarg], "--E_cm") == 0
+         or strcmp(argv[iarg], "-E") == 0)
+            return atof(argv[iarg+1]);
+    }
+    return _Ecm_default;
+}
+
+std::string _schannel_default = "gmZ";
+std::string schannel_cmdln(int argc, char* argv[]) {
+    for(int iarg=0;iarg<argc;iarg++) {
+        // Event Generator Parameters
+        if(strcmp(argv[iarg], "--s_channel") == 0)
+            return argv[iarg+1];
+    }
+    return _schannel_default;
+}
+
 // Misc. Options
 int verbose_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         // Event Generator Parameters
-        if(strcmp(argv[iarg], "--verbose") == 0)
+        if(strcmp(argv[iarg], "--verbose") == 0
+         or strcmp(argv[iarg], "-v") == 0)
             return atoi(argv[iarg+1]);
     }
     return 0;
@@ -410,7 +431,7 @@ double fragtemp_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         // Event Generator Parameters
         if(strcmp(argv[iarg], "-T") == 0
-         or strcmp(argv[iarg], "--frag_temp"))
+         or strcmp(argv[iarg], "--frag_temp") == 0)
             return atof(argv[iarg+1]);
     }
     return _frag_temp_default;

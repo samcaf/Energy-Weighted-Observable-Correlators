@@ -1,8 +1,7 @@
 /**
- * @file    ewoc_cmdl.cc
+ * @file    ewoc_cmdl.h
  *
- * @brief   A command line utility file for subjet energy-weighted observable correlators.
- *          Version 0.2
+ * @brief   A command line utility header file for subjet energy-weighted observable correlators.
  */
 #ifndef EWOC_CMDLN
 #define EWOC_CMDLN
@@ -13,6 +12,8 @@
 // =====================================
 // Command Line Basics
 // =====================================
+extern std::string flag_text;
+extern std::string help_text;
 
 int checkCmdInputs(int argc, char* argv[]);
 

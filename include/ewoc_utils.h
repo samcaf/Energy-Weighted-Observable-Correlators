@@ -26,6 +26,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+
 // ---------------------------------
 // HEP imports
 // ---------------------------------
@@ -33,10 +34,16 @@
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/ClusterSequence.hh"
 
+// Local imports:
+#include "../include/general_utils.h"
+#include "../include/jet_utils.h"
+
+// EWOCs:
+#include "../include/ewoc_utils.h"
+#include "../include/ewoc_cmdln.h"
+
 using namespace Pythia8;
 using namespace fastjet;
-
-#include "../include/ewoc_cmdln.h"
 
 
 // =====================================
@@ -51,22 +58,14 @@ extern RecombinationScheme _sub_recomb_scheme;
 // =====================================
 // typedefs
 // =====================================
-typedef unsigned long size_t;
+//typedef unsigned long size_t;
 
 // Type definitions for fastjet and pythia
-typedef std::vector<PseudoJet> PseudoJets;
+//typedef std::vector<PseudoJet> PseudoJets;
 
 // =====================================
 // Utility functions
 // =====================================
-
-// ---------------------------------
-// General utilities
-// ---------------------------------
-extern std::string flag_text;
-
-template<typename T>
-std::vector<T> arange(T start, T stop, T step = 1);
 
 // ---------------------------------
 // Plotting/Labelling Utilities
@@ -75,42 +74,12 @@ std::string ewoc_folder(int argc, char* argv[]);
 
 std::string ewoc_file_label(int argc, char* argv[]);
 
-// ---------------------------------
-// Error utilities
-// ---------------------------------
-std::string jetalg_error(JetAlgorithm alg);
-
-double pairwise_error();
-
-// ---------------------------------
-// Pseudojet utilities
-// ---------------------------------
-
-int is_nu_id(int id);
-
-PseudoJets get_particles(Event event);
-
-bool equal_pjs(PseudoJet pj1, PseudoJet pj2);
-
-double SumScalarPt(PseudoJets pjs);
-
-double SumEnergy(PseudoJets pjs);
-
-double pair_mass(PseudoJet pj1, PseudoJet pj2);
-
-double pair_cos(PseudoJet pj1, PseudoJet pj2);
-
-double pair_theta(PseudoJet pj1, PseudoJet pj2);
-
-// =====================================
-// EWOC Storage Utilities
-// =====================================
 
 // ---------------------------------
 // EWOC Text Storage
 // ---------------------------------
 
-void store_event_subpair_info(Event event,
+void store_event_subpair_info(PseudoJets particles,
                            JetAlgorithm jet_algorithm,
                            double jetR,
                            JetAlgorithm subjet_algorithm,

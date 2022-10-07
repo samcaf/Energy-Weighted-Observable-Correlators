@@ -32,6 +32,7 @@
 #include <chrono>
 using namespace std::chrono;
 
+
 // ---------------------------------
 // HEP imports
 // ---------------------------------
@@ -39,11 +40,14 @@ using namespace std::chrono;
 #include "fastjet/PseudoJet.hh"
 #include "fastjet/ClusterSequence.hh"
 
+// Local imports:
+#include "include/general_utils.h"
+#include "include/jet_utils.h"
+
+// EWOCs:
 #include "include/ewoc_utils.h"
 #include "include/ewoc_cmdln.h"
 
-using namespace Pythia8;
-using namespace fastjet;
 
 // =====================================
 // Global switches
@@ -59,7 +63,7 @@ using namespace fastjet;
 *
 * @return: int
 */
-int main (int argc, char* argv[]){
+int main (int argc, char* argv[]) {
     // Starting timer
     auto start = high_resolution_clock::now();
 
@@ -136,94 +140,96 @@ int main (int argc, char* argv[]){
     // ---------------------------------
     // Pythia setup
     // ---------------------------------
-    Pythia pythia;
+    Pythia8::Pythia event_generator;
 
     // Get default options
-    pythia.readFile("ewoc_setup.cmnd");
+    event_generator.readFile("ewoc_setup.cmnd");
 
     // Give process information to Pythia
     if (process_str == "quark") {
         std::cout << "pp ->  q qbar, \n";
-        pythia.readString("Beams:idA = 2212");
-        pythia.readString("Beams:idB = 2212");
-        pythia.readString("HardQCD:gg2gg = on");
+        event_generator.readString("Beams:idA = 2212");
+        event_generator.readString("Beams:idB = 2212");
+        event_generator.readString("HardQCD:gg2gg = on");
     } else if (process_str == "gluon") {
         std::cout << "pp -> gg, \n";
-        pythia.readString("Beams:idA = 2212");
-        pythia.readString("Beams:idB = 2212");
-        pythia.readString("HardQCD:gg2qqbar = on");
+        event_generator.readString("Beams:idA = 2212");
+        event_generator.readString("Beams:idB = 2212");
+        event_generator.readString("HardQCD:gg2qqbar = on");
     } else if (process_str == "qcd") {
         std::cout << "ee -> hadrons, \n";
-        pythia.readString("Beams:idA = 11");
-        pythia.readString("Beams:idB = -11");
+        event_generator.readString("Beams:idA = 11");
+        event_generator.readString("Beams:idB = -11");
         // gm, Z, or gmZ in the s-channel
-        pythia.readString("WeakSingleBoson:ffbar2ffbar(s:"
+        event_generator.readString("WeakSingleBoson:ffbar2ffbar(s:"
                 + s_channel + ") = on");
     } else if (process_str == "w") {
         std::cout << "ee -> W W, \n";
-        pythia.readString("Beams:idA = 11");
-        pythia.readString("Beams:idB = -11");
-        pythia.readString("WeakDoubleBoson:ffbar2WW = on");
+        event_generator.readString("Beams:idA = 11");
+        event_generator.readString("Beams:idB = -11");
+        event_generator.readString("WeakDoubleBoson:ffbar2WW = on");
     }
 
     // Beam energy
     if (E_cm != _Ecm_default) {
         std::cout << "beam E_cm: "
                   << std::to_string(E_cm/1000.) << " TeV.\n";
-        pythia.readString("Beams:eCM = " + std::to_string(E_cm));
+        event_generator.readString("Beams:eCM = " + std::to_string(E_cm));
     }
     else {
         std::cout << "beam E_cm: 4 TeV.\n";
-        pythia.readString("Beams:eCM = 4000");
+        event_generator.readString("Beams:eCM = 4000");
     }
 
     // Parton or hadron level
     if (qcd_level == "parton")
-        pythia.readString("HadronLevel:all = off");
+        event_generator.readString("HadronLevel:all = off");
 
     // Cut on the phase to produce events with a jet satisfying min pt requirement
-    pythia.readString("PhaseSpace:pTHatMin = "+std::to_string(pt_min-20));
+    event_generator.readString("PhaseSpace:pTHatMin = "+std::to_string(pt_min-20));
 
     // Misc. options
     if (verbose < 2) {
-        pythia.readString("Init:showProcesses = off");
-        pythia.readString("Init:showMultipartonInteractions = off");
-        pythia.readString("Init:showChangedSettings = off");
-        pythia.readString("Init:showChangedParticleData = off");
+        event_generator.readString("Init:showProcesses = off");
+        event_generator.readString("Init:showMultipartonInteractions = off");
+        event_generator.readString("Init:showChangedSettings = off");
+        event_generator.readString("Init:showChangedParticleData = off");
 
-        pythia.readString("Next:numberCount = 10000");
-        pythia.readString("Next:numberShowLHA = 0");
-        pythia.readString("Next:numberShowInfo = 0");
-        pythia.readString("Next:numberShowProcess = 0");
-        pythia.readString("Next:numberShowEvent = 0");
+        event_generator.readString("Next:numberCount = 10000");
+        event_generator.readString("Next:numberShowLHA = 0");
+        event_generator.readString("Next:numberShowInfo = 0");
+        event_generator.readString("Next:numberShowProcess = 0");
+        event_generator.readString("Next:numberShowEvent = 0");
 
-        pythia.readString("Stat:showProcessLevel = off");
-        pythia.readString("Stat:showErrors = off");
+        event_generator.readString("Stat:showProcessLevel = off");
+        event_generator.readString("Stat:showErrors = off");
     }
 
     // Advanced Options
     if (frag_temp != _frag_temp_default) {
         std::cout << "Turning on thermal model for string pT with temperature "
                   << std::to_string(frag_temp) << "\n";
-        pythia.readString("StringPT:thermalModel = on");
-        pythia.readString("StringPT:temperature = " + std::to_string(frag_temp));
+        event_generator.readString("StringPT:thermalModel = on");
+        event_generator.readString("StringPT:temperature = " + std::to_string(frag_temp));
     }
 
-    pythia.init();
+    event_generator.init();
 
     // ---------------------------------
     // Analyzing events
     // ---------------------------------
     for (int iev = 0; iev < n_events; iev++) {
         // Considering next event, if valid
-        if(!pythia.next()) continue;
+        if(!event_generator.next()) continue;
+        Event this_event = event_generator.event;
+        PseudoJets particles = get_particles_pythia(this_event);
 
         // Writing header for this event
         file << "# =========================\n"
              << "E " << std::to_string(iev+1) << "\n";
 
         // Storing EWOC info for this event in the output file
-        store_event_subpair_info(pythia.event,
+        store_event_subpair_info(particles,
                               jet_alg, jet_rad,
                               sub_alg, sub_rad,
                               pt_min, pt_max,

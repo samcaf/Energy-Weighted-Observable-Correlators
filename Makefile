@@ -8,7 +8,20 @@
 #===========================================
 # Rules for building files
 #===========================================
-# Telling Make to compile with g++, using pythia and fastjet libraries
-# ```make XXX.cc``` produces the executable ```XXX``, called with ```./XXX```
-%: $(FASTJET) $(PYTHIA) %.cc
-	$(CXX) $@.cc src/ewoc_cmdln.cc src/ewoc_utils.cc src/jet_utils.cc src/general_utils.cc -o $@ $(CXX_COMMON)
+.PHONY : setup write_tools plot_tools ewocs
+
+.DEFAULT_GOAL := ewocs
+
+# Telling Make to compile C++ code with g++, using pythia and fastjet libraries
+write_tools: $(FASTJET) $(PYTHIA) write_tools/src/write_ewocs.cc
+	# Compiling c++ code for writing EWOC data to the executable ```write_tools/write_ewocs```:
+	$(CXX) write_tools/src/write_ewocs.cc write_tools/src/ewoc_cmdln.cc write_tools/src/ewoc_utils.cc write_tools/src/jet_utils.cc write_tools/src/general_utils.cc -o write_tools/write_ewocs $(CXX_COMMON);
+	# Allowing EWOC writing scripts to be run as executables:
+	chmod +x write_tools/scripts/*;
+
+plot_tools:
+	# Allowing EWOC plotting scripts to be run as executables:
+	chmod +x plot_tools/plot_ewocs;
+	chmod +x plot_tools/scripts/*;
+
+ewocs: write_tools plot_tools

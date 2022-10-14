@@ -1,0 +1,34 @@
+#!/usr/bin/env python3
+
+import sys
+import numpy as np
+
+from ewoc_cmdln import ewoc_parser
+from ewoc_utils import plot_EWOC_by_sub_rads
+from ewoc_utils import plot_EWOC_by_frag_temps
+from ewoc_utils import plot_EWOC_pvh_by_rads
+
+# Get arguments
+kwargs=vars(ewoc_parser.parse_args())
+
+if kwargs['plot_type'] == 'sub_rad' or kwargs['plot_type'] is None:
+    plot_EWOC_by_sub_rads(load=True,
+                          print_every_n=500,
+                          # hist_weight=lambda x: x*(1-x),
+                          **kwargs)
+
+elif kwargs['plot_type'] == 'pvh':
+    plot_EWOC_pvh_by_rads(load=True,
+                          print_every_n=500,
+                          # hist_weight=lambda x: x*(1-x),
+                          **kwargs)
+
+elif kwargs['plot_type'] == 'thermal':
+    plot_EWOC_by_frag_temps(load=True,
+                          print_every_n=500,
+                          # hist_weight=lambda x: x*(1-x),
+                          **kwargs)
+
+else:
+    print(f"Invalid plot type {kwargs['plot_type']}.")
+

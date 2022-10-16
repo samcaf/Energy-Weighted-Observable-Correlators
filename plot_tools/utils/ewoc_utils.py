@@ -694,7 +694,7 @@ def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
             
     # Saving data
     for rsub in kwargs['sub_rad']:
-        save_hist_dict(overwrite=True, print_every_n=print_every_n,
+        save_hist_dict(overwrite=False, print_every_n=print_every_n,
                        **dict(kwargs, sub_rad=rsub))
     
     # Loading and processing data all given subjet radii
@@ -789,7 +789,7 @@ def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
                                 kwargs['jet_rad'],
                                 kwargs['sub_rad'],
                                 ['parton', 'hadron']):
-        save_hist_dict(overwrite=True, print_every_n=print_every_n,
+        save_hist_dict(overwrite=False, print_every_n=print_every_n,
                        **dict(kwargs, qcd_level=level,
                               jet_rad=Rjet, sub_rad=rsub))
 
@@ -899,7 +899,7 @@ def plot_EWOC_by_frag_temps(load=True, print_every_n=1000,
             
     # Saving data
     for temp in kwargs['temp']:
-        save_hist_dict(overwrite=True, print_every_n=print_every_n,
+        save_hist_dict(overwrite=False, print_every_n=print_every_n,
                        **dict(kwargs, temp=temp))
 
     # Loading and processing data for all given temperatures 

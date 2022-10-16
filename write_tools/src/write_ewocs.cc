@@ -82,6 +82,10 @@ int main (int argc, char* argv[]) {
     JetAlgorithm jet_alg = JetAlgorithm(jet_alg_int);
     JetAlgorithm sub_alg = JetAlgorithm(sub_alg_int);
 
+    // Optional: recombination schemes
+    RecombinationScheme jet_recomb = jetrecomb_cmdln(argc, argv);
+    RecombinationScheme sub_recomb = subrecomb_cmdln(argc, argv);
+
     // - - - - - - - - - - - - - - - - -
     // Optional Settings
     // - - - - - - - - - - - - - - - - -
@@ -165,8 +169,8 @@ int main (int argc, char* argv[]) {
 
             // Storing EWOC info for this event in the output file
             store_event_subpair_info(particles,
-                                     jet_alg, jet_rad,
-                                     sub_alg, sub_rad,
+                                     jet_alg, jet_rad, jet_recomb,
+                                     sub_alg, sub_rad, sub_recomb,
                                      pt_min, pt_max,
                                      ewoc_outfile);
         }
@@ -206,18 +210,18 @@ int main (int argc, char* argv[]) {
 
             if (sub_rad == 0){
                 // Visualize the whole event
-                JetDefinition jet_def(jet_alg, jet_rad, _jet_recomb_scheme);
+                JetDefinition jet_def(jet_alg, jet_rad, jet_recomb);
                 write_ptyphis_jets_with_ghosts(particles, jet_def,
                                                event_vis_file, "passive");
             }
             else {
                 // Visualize the subjets of the leading jet in the event
-                JetDefinition jet_def(jet_alg, jet_rad, _jet_recomb_scheme);
+                JetDefinition jet_def(jet_alg, jet_rad, jet_recomb);
                 ClusterSequence jet_cluster_seq(particles, jet_def);
                 PseudoJets jets = sorted_by_pt(jet_cluster_seq.inclusive_jets());
 
                 PseudoJet lead_jet = jets.at(0);
-                JetDefinition sub_def(sub_alg, sub_rad, _sub_recomb_scheme);
+                JetDefinition sub_def(sub_alg, sub_rad, sub_recomb);
                 write_ptyphis_jets_with_ghosts(lead_jet.constituents(),
                                                sub_def, event_vis_file,
                                                "passive");

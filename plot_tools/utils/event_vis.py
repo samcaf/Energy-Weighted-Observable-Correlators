@@ -1,0 +1,141 @@
+import numpy as np
+import matplotlib.pyplot as plt
+
+from dataclasses import dataclass
+
+from plot_utils import text_to_list
+from plot_utils import get_colors_colorbar, adjust_lightness
+from plot_utils import aestheticfig
+
+
+scatter_style = {'jet': {'alpha': .5},
+                 'ghosts': {'alpha': .1},
+                 'particles' : {}}
+color_scale = {'jet': .5, 'ghosts': .7, 'particles': 1}
+
+
+@dataclass
+class EventVisualizer:
+    filename : str
+    has_particles : bool = False
+
+    event_dict = None 
+
+    scatter_ax = None
+    ax_3d = None
+
+
+    def read_file(self):
+        event = text_to_list(self.filename, use_rows=lambda x: float(x[1]) > 0)
+
+        jet_inds = [part[4] for part in event]
+        self.num_jets = np.max(np.array(jet_inds).astype(int))
+        self.colors, _ = get_colors_colorbar(range(self.num_jets))
+        self.colors = self.colors[::-1]
+
+        self.event_dict = {}
+        
+        # Storing information for each jet
+        for ijet in np.arange(1, self.num_jets+1):
+            self.event_dict[ijet] = {}
+
+            jet = [np.array(part[1:4]).astype(np.float64)
+                   for part in event
+                   if part[0] == 'J' and int(part[4]) == ijet][0]
+            self.event_dict[ijet]['jet'] = jet 
+                
+            particles = ([np.array(part[1:4]).astype(np.float64)
+                          for part in event
+                          if part[0] == 'P' and int(part[4]) == ijet])
+            self.event_dict[ijet]['particles'] = np.array(particles)
+
+            ghosts = ([np.array(part[1:4]).astype(np.float64)
+                       for part in event
+                       if part[0] == 'G' and int(part[4]) == ijet])
+            self.event_dict[ijet]['ghosts'] = np.array(ghosts)
+
+        self.has_particles = True
+
+
+    def scatter_vis(self, pj_type=None):
+        assert self.has_particles, "No particles to visualize!"
+
+        if self.scatter_ax is None:
+            _, self.scatter_ax = plt.subplots()
+            self.scatter_ax.set_title("Event Visualization")
+            self.scatter_ax.set_xlabel(r"Rapidity ($y$)")
+            self.scatter_ax.set_ylabel(r"Azimuthal Angle ($\phi$)")
+            self.scatter_ax.set_xlim(-np.pi, np.pi)
+            self.scatter_ax.set_ylim(0, 2.*np.pi)
+
+        if pj_type is not None:
+            for i in range(self.num_jets):
+                color = self.colors[i]
+                ijet = i+1
+                pj_data = np.transpose(
+                    self.event_dict[ijet][pj_type])
+                if len(pj_data) > 0:
+                    pts, ys, phis = pj_data[0], pj_data[1], pj_data[2] 
+                    if pj_type == 'particles':
+                        s = pts/2
+                    elif pj_type == 'jet':
+                        s = pts/100
+                    elif pj_type == 'ghosts':
+                        s = np.ones(len(pts))*10 
+                    else:
+                        raise AssertionError(f"Invalid {pj_type = }")
+                        s = pts
+
+                    self.scatter_ax.scatter(ys, phis, s=s,
+                        color=adjust_lightness(color, color_scale[pj_type]),
+                        **scatter_style[pj_type])
+
+        else:
+            for pj_cat in ['ghosts', 'jet', 'particles']:
+                self.scatter_vis(pj_cat)
+
+
+    def vis_3d(self, pj_type=None):
+        # Set up figure
+        if self.ax_3d is None:
+            fig = plt.figure()
+            self.ax_3d = fig.add_subplot(111, projection='3d')
+            self.ax_3d.set_title("Event Visualization")
+            self.ax_3d.set_xlabel(r"Rapidity ($y$)")
+            self.ax_3d.set_ylabel(r"Azimuthal Angle ($\phi$)")
+            self.ax_3d.set_xlim(-np.pi, np.pi)
+            self.ax_3d.set_ylim(0, 2.*np.pi)
+
+        if pj_type is not None:
+            for i in range(2): #self.num_jets):
+                color = self.colors[i]
+                ijet = i+1
+                pj_data = np.transpose(
+                    self.event_dict[ijet][pj_type])
+                if len(pj_data) > 0:
+                    pts, ys, phis = pj_data[0], pj_data[1], pj_data[2] 
+
+                    hist, y_edges, phi_edges = np.histogram2d(ys, phis,
+                                                              bins=(1000,1000),
+                                                              weights=pts)
+                    y_pos, phi_pos = np.meshgrid(y_edges[:-1]+y_edges[1:],
+                                                 phi_edges[:-1]+phi_edges[1:])
+
+                    y_pos = y_pos.flatten()/2.
+                    phi_pos = phi_pos.flatten()/2.
+                    hist_pos = np.zeros_like (y_pos)
+
+                    dy = y_edges[1] - y_edges[0]
+                    dphi = phi_edges[1] - phi_edges[0]
+                    dz = hist.flatten()
+
+                    self.ax_3d.bar3d(y_pos, phi_pos, hist_pos, dy, dphi, dz,
+                                     color=color, zsort='average')
+
+        else:
+            for pj_cat in ['ghosts', 'particles']:
+                self.vis_3d(pj_cat)
+
+
+def event_vis_file():
+    return "../output/top_parton/jetR1-0/aktjet/subR0-00_casub_10000evts_ptmin50-0_ptmax3000-0_Ecm10000-0_vis-evt0.txt"

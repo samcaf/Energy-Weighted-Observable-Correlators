@@ -11,7 +11,7 @@
 #include <iostream>
 
 #include "Pythia8/Pythia.h"
-
+#include "fastjet/ClusterSequence.hh"
 
 // =====================================
 // Command Line Basics
@@ -50,9 +50,16 @@ extern const double _SUBRAD_DEFAULT;
 double jetrad_cmdln(int argc, char* argv[]);
 double subrad_cmdln(int argc, char* argv[]);
 
+// Recombination scheme info
+extern const fastjet::RecombinationScheme _JET_RECOMB_DEFAULT;
+extern const fastjet::RecombinationScheme _SUB_RECOMB_DEFAULT;
+fastjet::RecombinationScheme jetrecomb_cmdln(int argc, char* argv[]);
+fastjet::RecombinationScheme subrecomb_cmdln(int argc, char* argv[]);
+
 // ---------------------------------
 // Optional Basic Options
 // ---------------------------------
+
 // Phase space options
 double ptmin_cmdln(int argc, char* argv[]);
 double ptmax_cmdln(int argc, char* argv[]);

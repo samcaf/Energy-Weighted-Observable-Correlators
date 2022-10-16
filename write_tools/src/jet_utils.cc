@@ -254,7 +254,7 @@ void write_ptyphis_jets(const PseudoJets particles,
                         bool (*write_jet)(PseudoJet)) {
     file << event_vis_header;
     file << "\n# Storing particles and jet information associated with this event.\n";
-    file << "\n# Using jet definition with description:\n#"
+    file << "\n# Using jet definition with description:\n# "
          << jet_def.description() << "\n\n";
     // Finding jets
     ClusterSequence sub_cluster_seq(particles, jet_def);

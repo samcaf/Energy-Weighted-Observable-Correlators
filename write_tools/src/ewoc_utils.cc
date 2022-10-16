@@ -43,11 +43,7 @@ using namespace fastjet;
 // =====================================
 // Global Flags
 // =====================================
-
-// Recombination schemes for jet finding
-const RecombinationScheme _jet_recomb_scheme = WTA_pt_scheme;
-const RecombinationScheme _sub_recomb_scheme = WTA_pt_scheme;
-
+// No global flags at the moment
 
 // =====================================
 // EWOC Storage Utilities
@@ -69,12 +65,14 @@ const RecombinationScheme _sub_recomb_scheme = WTA_pt_scheme;
 void store_event_subpair_info(const PseudoJets particles,
                            const JetAlgorithm jet_algorithm,
                            const double jetR,
+                           const RecombinationScheme jet_recomb,
                            const JetAlgorithm subjet_algorithm,
                            const double subjetR,
+                           const RecombinationScheme sub_recomb,
                            const double pt_min, const double pt_max,
                            std::ofstream& file) {
     // Finding jets with the given jet radius
-    JetDefinition jet_def(jet_algorithm, jetR, _jet_recomb_scheme);
+    JetDefinition jet_def(jet_algorithm, jetR, jet_recomb);
     ClusterSequence cluster_seq(particles, jet_def);
     // Getting all jets in the event with pt > pt_min
     PseudoJets all_jets = sorted_by_pt(cluster_seq.inclusive_jets(pt_min));
@@ -86,7 +84,7 @@ void store_event_subpair_info(const PseudoJets particles,
 
     for (auto jet : good_jets)
         //for (auto subjetR : get_subjetRs(jetR))
-        store_jet_subpair_info(jet, subjet_algorithm, subjetR, file);
+        store_jet_subpair_info(jet, subjet_algorithm, subjetR, sub_recomb, file);
 
     return;
 }
@@ -107,13 +105,14 @@ void store_event_subpair_info(const PseudoJets particles,
 void store_jet_subpair_info(const PseudoJet jet,
                          const JetAlgorithm subjet_algorithm,
                          const double subjetR,
+                         const RecombinationScheme sub_recomb,
                          std::ofstream& file) {
     // Finding subjets using the given subjet radius
     PseudoJets subjets;
     if (subjetR == 0)
         subjets = jet.constituents();
     else {
-        JetDefinition subjet_def(subjet_algorithm, subjetR, _sub_recomb_scheme);
+        JetDefinition subjet_def(subjet_algorithm, subjetR, sub_recomb);
         ClusterSequence sub_cluster_seq(jet.constituents(), subjet_def);
         subjets = sorted_by_pt(sub_cluster_seq.inclusive_jets());
     }

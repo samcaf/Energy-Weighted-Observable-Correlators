@@ -5,9 +5,9 @@ from matplotlib.pyplot import show
 
 from sys import exit
 
-from plot_utils import aestheticfig, text_to_hist
+from utils.plot_utils import aestheticfig, text_to_hist
 
-from qcd_utils import alg_to_string
+from utils.qcd_utils import alg_to_string
 
 
 # =====================================
@@ -81,7 +81,7 @@ def ewoc_file_label(n_events, qcd_level, process_str,
         if key in kwargs.keys():
             if kwargs[key] != default_args[key] and kwargs[key] is not None: 
                 filename += '_' + arg_to_str_dict[key]\
-                         + str(kwargs[key]).replace(".", "-")
+                         + f"{float(kwargs[key]):.1f}".replace(".", "-")
 
     return folder + filename
 
@@ -111,16 +111,6 @@ class parse_jet_alg(argparse.Action):
         setattr(namespace, self.dest, alg_int)
 
 
-# Accept either single arguments or list of arguments
-class store_val_or_list(argparse.Action):
-    def __call__(self, parser, namespace, values, option_string=None):
-        val_or_list = [float(val) for val in
-                       values.lstrip('[').rstrip(']').split(',')]
-        if len(val_or_list) == 1:
-            val_or_list = val_or_list[0]
-        setattr(namespace, self.dest, val_or_list)
-
-
 # Plot pT associated with a particular PID
 class plot_pid_pT(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
@@ -144,15 +134,21 @@ class plot_soft_energy(argparse.Action):
                                xlabel=r"$E_{\rm soft\ subjet}$")
 
         def soft_energy(z1, z2, Etot):
+            z1, z2, Etot = float(z1), float(z2), float(Etot)
             return Etot * min(z1, z2)
+
+        def valid_row(row_info):
+            return row_info[0] == 'SP'
 
         for jet_rad in kwargs['jet_rad']:
             for sub_rad in kwargs['sub_rad']:
                 filename = ewoc_file_label(**dict(kwargs,
                                           jet_rad=jet_rad,
                                           sub_rad=sub_rad))
+                filename += '.txt'
                 text_to_hist(filename, use_cols=[1, 2, 3],
                              col_func=soft_energy,
+                             use_rows=valid_row,
                              fig=fig, ax=ax)
         show()
         exit()
@@ -188,11 +184,12 @@ ewoc_parser.add_argument("-s", "--sub_alg",
                  +"or 2 [akt, antikt];")
 
 ewoc_parser.add_argument("-R", "--jet_rad", 
-            action=store_val_or_list,
+            nargs='+', type=float,
             dest="jet_rad", 
             help="Jet radius;", default=1.0)
 ewoc_parser.add_argument("-r", "--sub_rad", 
-            action=store_val_or_list, dest="sub_rad",
+            nargs='+', type=float,
+            dest="sub_rad",
             help="Subjet radius (or radii);", default=0.1)
 
 # ---------------------------------
@@ -242,8 +239,7 @@ ewoc_parser.add_argument("--s_channel",
 # Advanced Options (Optional)
 # ---------------------------------
 ewoc_parser.add_argument("-T", "--frag_temp", 
-            dest="temp",
-            action=store_val_or_list,
+            dest="temp", type=float, nargs='+',
             help="Temperature of string fragmentation, off by default; see:"\
              +"\n    * https://pythia.org/latest-manual/Fragmentation.html#anchor25;"\
              +"\n    * https://arxiv.org/pdf/1610.09818.pdf;",
@@ -262,19 +258,19 @@ ewoc_parser.add_argument("--plot_type",
             default='sub_rad',
             required=False)
                 
-ewoc_parser.add_argument("--plot_pt_pid", 
+ewoc_parser.add_argument("--plot_pid_pt", 
             action=plot_pid_pT,
             help="Optional argument which histograms the pT of particles "
                  +"with given particle ID that appear in the given "
                  +"process."\
                  +"\nRelies on input from the"\
-                 +"```--write_pt_pid``` option of "
+                 +"```--write_pid_pt``` option of "
                  +"```write_ewocs```.",
             default=None,
             required=False)
 
 ewoc_parser.add_argument("--plot_soft_energy", 
-            action=plot_soft_energy,
+            action=plot_soft_energy, nargs=0,
             help="Optional argument which histograms the energy "\
                   "carried by the softer subjet in every pair of"\
                   "subjets found using the specified jet parameters.",

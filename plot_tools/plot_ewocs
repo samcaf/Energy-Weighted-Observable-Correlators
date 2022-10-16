@@ -3,26 +3,42 @@
 import sys
 import numpy as np
 
-from ewoc_cmdln import ewoc_parser
-from ewoc_utils import plot_EWOC_by_sub_rads
-from ewoc_utils import plot_EWOC_by_frag_temps
-from ewoc_utils import plot_EWOC_pvh_by_rads
+# Command line tools
+from utils.ewoc_cmdln import ewoc_parser
+
+# Specific plot types
+from utils.ewoc_utils import plot_EWOC_by_sub_rads
+from utils.ewoc_utils import plot_EWOC_by_frag_temps
+from utils.ewoc_utils import plot_EWOC_pvh_by_rads
+
+# =====================================
+# Plotting EWOCs using command line arguments 
+# =====================================
 
 # Get arguments
 kwargs=vars(ewoc_parser.parse_args())
 
-if kwargs['plot_type'] == 'sub_rad' or kwargs['plot_type'] is None:
+# ---------------------------------
+# Plotting EWOCs for many subjet radii 
+# ---------------------------------
+if kwargs['plot_type'] in ['sub_rad', 'sub_rads'] or kwargs['plot_type'] is None:
     plot_EWOC_by_sub_rads(load=True,
                           print_every_n=500,
                           # hist_weight=lambda x: x*(1-x),
                           **kwargs)
 
-elif kwargs['plot_type'] == 'pvh':
+# ---------------------------------
+# Plotting parton vs. hadron EWOCs 
+# ---------------------------------
+elif kwargs['plot_type'] in ['pvh', 'parton_v_hadron']:
     plot_EWOC_pvh_by_rads(load=True,
                           print_every_n=500,
                           # hist_weight=lambda x: x*(1-x),
                           **kwargs)
 
+# ---------------------------------
+# Plotting by fragmentation temperature 
+# ---------------------------------
 elif kwargs['plot_type'] == 'thermal':
     plot_EWOC_by_frag_temps(load=True,
                           print_every_n=500,

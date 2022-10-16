@@ -13,6 +13,7 @@ from matplotlib.legend_handler import HandlerErrorbar
 from matplotlib.path import Path
 from matplotlib.patches import PathPatch
 
+import colorsys
 import matplotlib.colors as mcolors
 import matplotlib.cm as cm
 
@@ -191,7 +192,7 @@ def aestheticfig(xlabel='x', ylabel=r'Probability Density',
 
 def aesthetic_N_by_M(xlabel='x', ylabel=r'Probability Density',
                  nrows=2, ncols=2,
-                 title=None, showdate=True,
+                 title=None, showdate=False,
                  xlim=(0, 1), ylim=(0, 1), ylim_ratio=(0.5, 2.),
                  ratio_plot=True, ylabel_ratio='Ratio',
                  labeltext=None,
@@ -478,9 +479,9 @@ def text_to_list(filename, use_cols=None, use_rows=None):
                 elif not use_rows(info):
                     continue
 
-            # Default: use first column
+            # Default: use all data 
             if use_cols is None:
-                data.append(info[0])
+                data.append(np.array(info))
             # Otherwise, if use_cols is a value or a [value]
             elif (not isinstance(use_cols, list) and\
                   not isinstance(use_cols, np.ndarray)):
@@ -497,22 +498,24 @@ def text_to_list(filename, use_cols=None, use_rows=None):
 
 def text_to_hist(filename, use_cols=0, use_rows=None,
                  col_func=None,
-                 (fig, ax)=(None,None),
+                 fig=None, ax=None,
                  nbins=100, binspace='lin',
                  weight_fn=lambda x: np.ones(len(x)),
                  plot_style='plot', save=None,
                  **kwargs):
     # Getting data from text file
     data = text_to_list(filename, use_cols=use_cols,
-                        use_rows=use_rows).astype(np.float64)
+                        use_rows=use_rows)
 
     # If we receive a list of columns to use
-    if isinstance(use_col, list) or isinstance(use_col, np.ndarray):
-        if len(use_col) != 1:
+    if isinstance(use_cols, list) or isinstance(use_cols, np.ndarray):
+        if len(use_cols) != 1:
             # Turning multiple column values into a single number to hist
             assert col_func is not None, "Missing a required function"\
               +" on the columns of the text file for making a histogram."
-            data = [col_func(*datum) for datum in data]
+            data = np.array([col_func(*datum) for datum in data])
+
+    data = data.astype(np.float64)
 
     # - - - - - - - - - - - - - - - - -
     # Making histogram
@@ -598,10 +601,10 @@ def adjust_lightness(color, amount=0.5):
     From https://stackoverflow.com/a/49601444
     """
     try:
-        c = mpc.cnames[color]
+        c = mcolors.cnames[color]
     except:
         c = color
-    c = colorsys.rgb_to_hls(*mpc.to_rgb(c))
+    c = colorsys.rgb_to_hls(*mcolors.to_rgb(c))
     return colorsys.hls_to_rgb(c[0], max(0, min(1, amount * c[1])), c[2])
 
 

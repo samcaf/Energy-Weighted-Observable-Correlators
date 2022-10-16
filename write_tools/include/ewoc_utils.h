@@ -46,14 +46,6 @@ using namespace Pythia8;
 using namespace fastjet;
 
 
-// =====================================
-// Global Flags
-// =====================================
-
-// Recombination schemes for jet finding
-extern const RecombinationScheme _jet_recomb_scheme;
-extern const RecombinationScheme _sub_recomb_scheme;
-
 
 // =====================================
 // typedefs
@@ -70,14 +62,17 @@ extern const RecombinationScheme _sub_recomb_scheme;
 void store_event_subpair_info(const PseudoJets particles,
                            const JetAlgorithm jet_algorithm,
                            const double jetR,
+                           const RecombinationScheme jet_recomb,
                            const JetAlgorithm subjet_algorithm,
                            const double subjetR,
+                           const RecombinationScheme sub_recomb,
                            const double pt_min, const double pt_max,
                            std::ofstream& file);
 
 void store_jet_subpair_info(const PseudoJet jet,
                          const JetAlgorithm subjet_algorithm,
                          const double subjetR,
+                         const RecombinationScheme sub_recomb,
                          std::ofstream& file);
 
 #endif

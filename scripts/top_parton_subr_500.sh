@@ -7,4 +7,4 @@ end
 # Note: need both gamma and Z in s channel
 
 # Plotting
-./plot_tools/scripts/subrads_top_parton_500.sh
+./plot_tools/plot_ewocs -n 10000 -l parton -p top -j antikt -s ca -R 1.0 -r 0 .1 .2 .3 .4 .5 --pt_min 50 --pt_max 3000 -E 500 --s_channel gmZ --plot_type sub_rads

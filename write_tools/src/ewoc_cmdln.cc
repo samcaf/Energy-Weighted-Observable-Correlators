@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 
 #include "Pythia8/Pythia.h"
+#include "fastjet/ClusterSequence.hh"
 
 // Local imports:
 #include "../include/general_utils.h"
@@ -90,7 +91,7 @@ std::string help_text = R"(
   # Output Options (Optional):
   # ================================================
   [<--write_ewocs> <bool>] :                    Determines whether EWOC data is written;
-  [<--write_pt_pid> <int>] :                    Determines whether pT spectrum for the particle
+  [<--write_pid_pt> <int>] :                    Determines whether pT spectrum for the particle
                                                 with the given particle ID is written;
 
   # ================================================
@@ -585,6 +586,40 @@ double subrad_cmdln(int argc, char* argv[]) {
     }
     return _SUBRAD_DEFAULT;
 }
+
+// - - - - - - - - - - - - - - - - -
+// Jet and subjet recombination schemes
+// - - - - - - - - - - - - - - - - -
+// Recombination schemes for jet finding
+const fastjet::RecombinationScheme _JET_RECOMB_DEFAULT = fastjet::WTA_pt_scheme;
+const fastjet::RecombinationScheme _SUB_RECOMB_DEFAULT = fastjet::WTA_pt_scheme;
+
+fastjet::RecombinationScheme jetrecomb_cmdln(int argc, char* argv[]) {
+    for(int iarg=0;iarg<argc;iarg++) {
+        if(str_eq(argv[iarg], "--jet_recomb")) {
+            // Only accepting WTA_pt for now
+            if(str_eq(argv[iarg+1], "WTA_pt"))
+                return fastjet::WTA_pt_scheme;
+            else
+                throw std::invalid_argument("Invalid jet recombination scheme");
+        }
+    }
+    return _JET_RECOMB_DEFAULT;
+}
+
+fastjet::RecombinationScheme subrecomb_cmdln(int argc, char* argv[]) {
+    for(int iarg=0;iarg<argc;iarg++) {
+        if(str_eq(argv[iarg], "--sub_recomb")) {
+            // Only accepting WTA_pt for now
+            if(str_eq(argv[iarg+1], "WTA_pt"))
+                return fastjet::WTA_pt_scheme;
+            else
+                throw std::invalid_argument("Invalid subjet recombination scheme");
+        }
+    }
+    return _SUB_RECOMB_DEFAULT;
+}
+
 
 // ---------------------------------
 // Optional Basic Options

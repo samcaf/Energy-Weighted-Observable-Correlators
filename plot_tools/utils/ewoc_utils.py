@@ -23,6 +23,9 @@ import os.path
 import numpy as np
 import matplotlib.pyplot as plt
 
+# Analysis imports
+from scipy.signal import find_peaks_cwt
+
 # Plotting imports
 from cycler import cycler
 from matplotlib import rc
@@ -33,18 +36,18 @@ import itertools
 from functools import reduce
 
 # Plot utilities
-from plot_utils import aestheticfig, aesthetic_N_by_M, stamp
-from plot_utils import get_colors_colorbar 
-from plot_utils import style_solid, style_dashed, style_scatter, modstyle
-from plot_utils import get_hist_edges_centers, text_to_hist
+from utils.plot_utils import aestheticfig, aesthetic_N_by_M, stamp
+from utils.plot_utils import get_colors_colorbar 
+from utils.plot_utils import style_solid, style_dashed, style_scatter, modstyle
+from utils.plot_utils import get_hist_edges_centers, text_to_hist
 
 # Physics functions
-from qcd_utils import alg_to_string  # jet algorithm names
-from qcd_utils import mass_val, scale_name, scale_col
-from qcd_utils import eec_nnlo  # eec
+from utils.qcd_utils import alg_to_string  # jet algorithm names
+from utils.qcd_utils import mass_val, scale_name, scale_col
+from utils.qcd_utils import eec_nnlo  # eec
 
 # File reading functions
-from ewoc_cmdln import ewoc_file_label
+from utils.ewoc_cmdln import ewoc_file_label
 
 
 # ---------------------------------
@@ -61,14 +64,11 @@ plot_scatter = True  # Only applied if plot_errorbars = False
 # Writing to files 
 # ---------------------------------
 
-def save_hist_dict(overwrite=False, print_every_n=1000,
+def save_hist_dict(overwrite, print_every_n=1000,
                   **kwargs):
     file_prefix = ewoc_file_label(**kwargs)
     data_dir = file_prefix + '.txt'
-    # DEBUG: Using to generate new files when attempting
-    # to normalize ewocs by hand
     hist_dir = file_prefix + '_normed.npz'
-    #hist_dir = file_prefix + '.npz'
 
     if os.path.isfile(hist_dir):
         print(f"File found at {hist_dir}.")
@@ -98,10 +98,7 @@ def get_hist_dict(load=True, save=True, print_every_n=1000,
                   **kwargs):
     file_prefix = ewoc_file_label(**kwargs)
     data_dir = file_prefix + '.txt'
-    # DEBUG: Using to generate new files when attempting
-    # to normalize ewocs by hand
     hist_dir = file_prefix + '_normed.npz'
-    #hist_dir = file_prefix + '.npz'
 
     if load: 
         try:
@@ -167,11 +164,10 @@ def ewoc_text_to_dict(filename, pair_obs=None,
     # ---------------------------------
     # Observables
     if pair_obs is None:
-        pair_obs = [pair_costheta, pair_formtime, pair_mass]
+        pair_obs = [pair_costheta, pair_formtime, pair_mass, pair_kt]
     if not isinstance(pair_obs, list):
         # Making sure observables are stored in a list
         pair_obs = [pair_obs]
-    # Storing observable names, assuming they start with "pair_"
     obsnames = [f'{obsname=}'.split(' ')[1][len("pair_"):]
                 for obsname in pair_obs]
 
@@ -312,6 +308,8 @@ def obs_label(observable):
         return r'Mass (GeV)'
     elif observable == 'formtime':
         return r'Formation Time (GeV$^{-1}$)'
+    elif observable == 'kt':
+        return r'$k_T$ (GeV)'
 
 def obs_title(observable):
     """Returns a title for plotting the given observable
@@ -325,6 +323,8 @@ def obs_title(observable):
         return r'Mass Subjet EWOC'
     elif observable == 'formtime':
         return r'Formation Time Subjet EWOC'
+    elif observable == 'kt':
+        return r'$k_T$ Subjet EWOC'
 
 
 # ---------------------------------
@@ -346,10 +346,17 @@ def pair_mass(Etot, z1, z2, costheta):
 def pair_formtime(Etot, z1, z2, costheta):
     return np.float64(Etot * max(z1, z2)) / pair_m2(Etot, z1, z2, costheta)
 
+def pair_kt(Etot, z1, z2, costheta):
+    return Etot * min(z1, z2) * np.sin(np.arccos(costheta))
+
 
 # =====================================
 # Plotting Utilites 
 # =====================================
+
+# Lower y boundary in log-log plot
+_ylog_low = 2e-4
+_ylog_high = 2e1
 
 # ---------------------------------
 # Dicts and descriptive info 
@@ -394,7 +401,16 @@ lims = {'costheta': {('linear', 'linear'):
                         ((1e-3, 1e3), (0, 4e-1)),
                       ('log', 'log'):
                         ((1.0, 1e3), (1e-4, .7))
-                      }
+                      },
+         'kt'   : {('linear', 'linear'): 
+                        ((0, 1e3), (0, 1.7e-2)),
+                      ('linear', 'log'): 
+                        ((0, 150), (1e-4, .12)),
+                      ('log', 'linear'):
+                        ((2e-3, 1e3), (0, .9)),
+                      ('log', 'log'):
+                        ((1.0, 1e3), (1e-4, .7))
+                      },
         }
 
 
@@ -409,36 +425,46 @@ def expected_obs_peak(obsname, **kwargs):
     elif obsname == 'z':
         peak = (2*mass/E_cm)**2.
     elif obsname == 'formtime':
-        expected_E_soft = E_cm/2
-        peak = expected_E_soft/mass**2.
+        expected_E_hard = E_cm/3
+        peak = expected_E_hard/mass**2.
+    elif obsname == 'kt':
+        expected_E_soft = E_cm/10
+        peak = expected_E_soft * 4.*mass**2./E_cm**2.
     else:
         raise AssertionError(f"Invalid {obsname = }")
 
     return peak
 
 
+def expected_peaks_scales_colors(obsname, **kwargs):
+    exp_peaks = [expected_obs_peak(obsname, **kwargs)]
+    scales = [scale_name[kwargs['process_str']]]
+    colors = [scale_col[kwargs['process_str']]]
+
+    # If we expect additional peaks from other physics
+    if "Z" in kwargs['s_channel']:
+        exp_peaks.append(expected_obs_peak(obsname,
+                            **dict(kwargs, process_str='z')))
+        scales.append(scale_name['z'])
+        colors.append(scale_col['z'])
+    if kwargs['process_str'] == 'top':
+        exp_peaks.append(expected_obs_peak(obsname,
+                            **dict(kwargs, process_str='w')))
+        scales.append(scale_name['w'])
+        colors.append(scale_col['w'])
+    
+    return exp_peaks, scales, colors
+
+
 def hist_title(observable, jet_radius, subjet_alg_int):
     """Title for a histogram plotting the EWOC for the given
     subjet pair property, jet radius, and subjet algorithm.
     """
-    title = ''
-    """
-    if observable == 'costheta':
-        title += r'$\cos(\theta)$ '
-    elif observable == 'z':
-        title += r'$z = (1 - \cos\theta)/2$ '
-    elif observable == 'mass':
-        title += r'Mass '
-    elif observable == 'formtime':
-        title += r'Formation Time '
-    """
-
     # radius info
-    title += r'EWOC, $R_{\rm jet}$=' + f'{float(jet_radius):.1f}'
+    title = r'EWOC, $R_{\rm jet}$=' + f'{float(jet_radius):.1f}'
 
     # Add subjet alg info
     title += f', {alg_to_string(subjet_alg_int)} Subjets'
-            
 
     return title
 
@@ -510,37 +536,24 @@ def plot_hist_dict(hist_dicts, obsname,
 
     # Plot line showing an order-of-magnitude expectation for EWOC peaks
     if plot_expectation:
-        expected_peaks = [expected_obs_peak(obsname, **kwargs)]
-        scales = [scale_name[kwargs['process_str']]]
-        colors = [scale_col[kwargs['process_str']]]
-
-        # If we expect additional peaks from other physics
-        if "Z" in kwargs['s_channel']:
-            expected_peaks.append(expected_obs_peak(obsname,
-                                **dict(kwargs, process_str='z')))
-            scales.append(scale_name['z'])
-            colors.append(scale_col['z'])
-        if kwargs['process_str'] == 'top':
-            expected_peaks.append(expected_obs_peak(obsname,
-                                **dict(kwargs, process_str='w')))
-            scales.append(scale_name['w'])
-            colors.append(scale_col['w'])
+        exp_peaks, scales, colors = expected_peaks_scales_colors(obsname,
+                                                                 **kwargs)
 
         # Plotting vertical lines
-        ax[0].vlines(expected_peaks, -1, 1e7, colors=colors)
+        ax[0].vlines(exp_peaks, -1, 1 if y_scale == 'log' else 1e7, colors=colors)
         if show_analytic:
-            ax[1].vlines(expected_peaks, 1e-5, 1e5, colors=colors)
+            ax[1].vlines(exp_peaks, -1, 1e7, colors=colors)
         # Adding text 
         ylow, yhigh = ax[0].get_ylim()
         ymid = (ylow+yhigh)/2. if y_scale in ['lin', 'linear']\
-            else np.sqrt((ylow+2e-8)*yhigh)
+            else np.sqrt((ylow+2*_ylog_low)*yhigh)
         for iscale, scale in enumerate(scales):
             scale_frac = (iscale+1/2.)/len(scales)
             if y_scale in ['lin', 'linear']:
                 y_text = (1.-scale_frac)*ylow + scale_frac*yhigh
             else:
-                y_text = (2e-8+ylow)**(1.-scale_frac) * ymid**scale_frac
-            ax[0].text(expected_peaks[iscale], y_text,
+                y_text = (2*_ylog_low+ylow)**(1.-scale_frac) * ymid**scale_frac
+            ax[0].text(exp_peaks[iscale], y_text,
                        ("Set by " if iscale==0 else '') + scale,
                        rotation=90, verticalalignment='center')
 
@@ -596,26 +609,64 @@ def plot_hist_dict(hist_dicts, obsname,
     if binspace == 'log':
         [a.set_xscale('log') for a in ax]
     if y_scale == 'log':
-        ax[0].set_ylim(bottom=1e-8)
+        ax[0].set_ylim(_ylog_low, _ylog_high)
         ax[0].set_yscale('log')
 
     return
 
 
-def plot_peak_loc(hist_data, x_vals, ax,
-                  **kwargs):
-    for (hist, bin_centers), x_val in zip(hist_data, x_vals):
-        for peak in scipy.signal.find_peaks(hist)[0]:
-            ax.plot(x_val, peak)
-    return
-
-
-def plot_hist_dict_peaks(hist_dicts, obsnames,
-                         x_scale='log', y_scale='linear', 
+def plot_hist_dict_peaks(hist_dicts, obsname,
+                         x_var=None, xlabel=None,
+                         binspace='log',
+                         x_scale='lin', y_scale='log', 
                          title=None,
                          plot_expectation=True,
                          **kwargs):
-    pass
+    # x-axis variable setup (default r/R)
+    if x_var is None:
+        def x_var(sub_rad, jet_rad, **kwargs):
+            return float(sub_rad)/float(jet_rad)
+        xlabel = r"$r_{\rm sub} / R_{\rm jet}$"
+
+    # Figure setup
+    fig, ax = aestheticfig(xlabel=xlabel,
+                ylabel=obs_title(obsname) + " Peak")
+
+    # Plotting for each hist dict
+    for hist_dict in hist_dicts:
+        # Getting the values on the x axis for this dict
+        x_val = x_var(**hist_dict)
+        hist, _, bin_centers = hist_dict[obsname][binspace]
+        # for peak_ind in find_peaks(hist)[0]:
+        for peak_ind in find_peaks_cwt(hist, np.arange(1,10)):
+            ax[0].scatter(x_val, bin_centers[peak_ind],
+                          color='cornflowerblue')
+
+    if x_scale == 'log':
+        [a.set_xscale('log') for a in ax]
+    if y_scale == 'log':
+        ax[0].set_ylim(_ylog_low, _ylog_high)
+        ax[0].set_yscale('log')
+
+    # Plotting what we might expect for the peak value
+    if plot_expectation:
+        exp_peaks, scales, colors = expected_peaks_scales_colors(obsname,
+                                                                 **kwargs)
+        # Plotting vertical lines
+        ax[0].hlines(exp_peaks, -1, 1e7, colors=colors)
+        # Adding text 
+        xlow, xhigh = ax[0].get_xlim()
+        xmid = (xlow+xhigh)/2. if x_scale in ['lin', 'linear']\
+            else np.sqrt((xlow+2e-8)*xhigh)
+        for iscale, scale in enumerate(scales):
+            scale_frac = (iscale+1/2.)/len(scales)
+            if x_scale in ['lin', 'linear']:
+                x_text = (1.-scale_frac)*xlow + scale_frac*xhigh
+            else:
+                x_text = (2e-8+xlow)**(1.-scale_frac) * xmid**scale_frac
+            ax[0].text(exp_peaks[iscale], x_text,
+                       ("Set by " if iscale==0 else '') + scale,
+                       rotation=0, verticalalignment='center')
 
 
 
@@ -628,12 +679,22 @@ def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
                           obsnames=None,
                           **kwargs):
     # Typesetting keyword arguments
+    for key, value in kwargs.items():
+        if key == 'sub_rad':
+            if not isinstance(value, list):
+                kwargs[key] = [value]
+        else:
+            if isinstance(value, list):
+                assert len(value) == 1, "Received too many values"\
+                    +f"({len(value)} for {key}."
+                kwargs[key] = value[0]
+            
     if not isinstance(kwargs['sub_rad'], list):
         kwargs['sub_rad'] = [kwargs['sub_rad']]
             
     # Saving data
     for rsub in kwargs['sub_rad']:
-        save_hist_dict(overwrite=False, print_every_n=print_every_n,
+        save_hist_dict(overwrite=True, print_every_n=print_every_n,
                        **dict(kwargs, sub_rad=rsub))
     
     # Loading and processing data all given subjet radii
@@ -695,6 +756,10 @@ def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
                      **{key: val for key, val in kwargs.items()
                             if key not in ['jet_rad', 'sub_rad']})
 
+        # Plotting the peaks of these distributions
+        if obsname != 'costheta':
+            plot_hist_dict_peaks(hist_dicts, obsname, binspace='log', **kwargs)
+
     plt.show()
 
     return
@@ -709,24 +774,30 @@ def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
                           obsnames=None,
                           **kwargs):
     # Turning the keyword argument for (sub)jet radii into a list
-    for rad_type in ['sub_rad', 'jet_rad']:
-        assert len(kwargs[rad_type]) == 2, "Expected two radii"\
-            + f"of type {rad_type} (received {len(kwargs[rad_type])})."
+    for key, value in kwargs.items():
+        if key in ['sub_rad', 'jet_rad']:
+            assert len(value) == 2, "Expected two radii"\
+                + f"of type {rad_type} (received {len(value)})."
+        else:
+            if isinstance(value, list):
+                assert len(value) == 1, "Received too many values"\
+                    +f"({len(value)} for {key}."
+                kwargs[key] = value[0]
 
-    # Getting observable dictionaries for all given subjet radii
-    # (accessed via ```kwargs['sub_rad']```)
-    hist_dicts_parton = []
-    hist_dicts_hadron = []
-    
     # Saving data
     for (Rjet, rsub, level) in itertools.product(
                                 kwargs['jet_rad'],
                                 kwargs['sub_rad'],
                                 ['parton', 'hadron']):
-        save_hist_dict(overwrite=False, print_every_n=print_every_n,
+        save_hist_dict(overwrite=True, print_every_n=print_every_n,
                        **dict(kwargs, qcd_level=level,
                               jet_rad=Rjet, sub_rad=rsub))
-    
+
+    # Getting observable dictionaries for all given subjet radii
+    # (accessed via ```kwargs['sub_rad']```)
+    hist_dicts_parton = []
+    hist_dicts_hadron = []
+      
     # Loading and processing data
     for (Rjet, rsub) in itertools.product(kwargs['jet_rad'],
                                           kwargs['sub_rad']):
@@ -816,12 +887,19 @@ def plot_EWOC_by_frag_temps(load=True, print_every_n=1000,
                             obsnames=None,
                             **kwargs):
     # Turning the keyword argument for fragmentation temperature into a list
-    if not isinstance(kwargs['temp'], list):
-        kwargs['temp'] = [kwargs['temp']]
-
+    for key, value in kwargs.items():
+        if key == 'temp':
+             if not isinstance(value, list):
+                kwargs[key] = [value]
+        else:
+            if isinstance(value, list):
+                assert len(value) == 1, "Received too many values"\
+                    +f"({len(value)} for {key}."
+                kwargs[key] = value[0]
+            
     # Saving data
     for temp in kwargs['temp']:
-        save_hist_dict(overwrite=False, print_every_n=print_every_n,
+        save_hist_dict(overwrite=True, print_every_n=print_every_n,
                        **dict(kwargs, temp=temp))
 
     # Loading and processing data for all given temperatures 
@@ -884,5 +962,3 @@ def plot_EWOC_by_frag_temps(load=True, print_every_n=1000,
                             if key not in ['jet_rad', 'sub_rad']})
 
     plt.show()
-
-

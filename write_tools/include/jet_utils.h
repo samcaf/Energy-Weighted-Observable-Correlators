@@ -94,6 +94,7 @@ double pair_cos(const PseudoJet pj1, const PseudoJet pj2);
 // =====================================
 
 extern std::string event_vis_header;
+extern std::string event_vis_footer;
 
 void write_ptyphi_particle(const PseudoJet particle,
                     std::ofstream& file,

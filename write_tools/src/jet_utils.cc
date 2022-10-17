@@ -207,17 +207,21 @@ double pair_cos(const PseudoJet pj1, const PseudoJet pj2) {
 // Visualization Utilities
 // =====================================
 
-std::string event_vis_header = R"(
-# ####################################
+std::string event_vis_header =
+R"(# ####################################
 # Event Visualization File
 # ####################################
-# Format:       Header  |   pt  |   y   |   phi |   index
-# 1st column:               Header describing information type
+# Format:       Label  |   pt  |   y   |   phi |   index
+# 1st column:               Label describing information type
 #       (J: Jet, P: Particle, SJ: Subjet, G: Ghost)
 # 2nd, 3rd, 4th column:     pt, y, phi
 # 5th (final) column:       Jet index
 #       (-1: no info; N: associated with Nth-hardest jet)
+# ############ END HEADER ############
 )";
+
+std::string event_vis_footer =R"(
+# ########## END EVENT INFO ##########)";
 
 
 void write_ptyphi_pj(const PseudoJet pj,

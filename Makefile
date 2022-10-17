@@ -20,6 +20,7 @@ write_tools: $(FASTJET) $(PYTHIA) write_tools/src/write_ewocs.cc
 plot_tools:
 	# Allowing EWOC plotting tools to be run as executables:
 	chmod +x plot_tools/plot_ewocs;
+	chmod +x plot_tools/event_vis;
 	chmod +x plot_tools/scripts/*;
 
 scripts:

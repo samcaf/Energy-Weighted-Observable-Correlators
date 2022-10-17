@@ -228,6 +228,13 @@ int main (int argc, char* argv[]) {
             }
             std::cout << "Printed event " << iev << " to " << event_filename << "\n";
             event_vis_file.close();
+
+            // Making a file which points to the most recent event visualization instance.
+            // Allows easier command line interface
+            std::ofstream event_vis_pointer;
+            event_vis_pointer.open("event_vis_pointer.txt");
+            event_vis_pointer << event_filename;
+            event_vis_pointer.close();
         }
     } // end event loop
 

@@ -18,10 +18,6 @@ scatter_style = {'jet': {'alpha': .5},
 color_scale = {'jet': .5, 'ghosts': .7, 'particles': 1}
 
 
-# Example file for visualization
-_event_vis_file = "/Users/sam/Documents/Research/EWOCs/output/top_parton/jetR1-0/aktjet/subR0-00_casub_10000evts_ptmin50-0_ptmax3000-0_Ecm10000-0_vis-evt0.txt"
-
-
 def radial_distance(pj1, pj2):
     """Distance in the rapidity-azimuth plane
     between two pseudojets, in the format used
@@ -33,7 +29,7 @@ def radial_distance(pj1, pj2):
 @dataclass
 class EventVisualizer:
     # File from which to read
-    filename : str = _event_vis_file
+    filename : str = None
 
     # Event properties
     event_dict = None
@@ -46,7 +42,7 @@ class EventVisualizer:
     min_phi: float = None
 
     # Jet properties
-    radius: float = None # None  # FIX -- no default here
+    radius: float = None
     close_jet_inds = None 
 
     # Figures
@@ -160,8 +156,6 @@ class EventVisualizer:
         """
         if not self.has_particles:
             self.read_file()
-        if self.filename == _event_vis_file:
-            print("Visualizing all particles in an example e+ e- -> t tbar event.")
 
         if self.scatter_ax is None:
             _, self.scatter_ax = plt.subplots()

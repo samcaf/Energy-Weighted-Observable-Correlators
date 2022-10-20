@@ -18,26 +18,50 @@ scatter_style = {'jet': {'alpha': .5},
 color_scale = {'jet': .5, 'ghosts': .7, 'particles': 1}
 
 
+# Example file for visualization
 _event_vis_file = "/Users/sam/Documents/Research/EWOCs/output/top_parton/jetR1-0/aktjet/subR0-00_casub_10000evts_ptmin50-0_ptmax3000-0_Ecm10000-0_vis-evt0.txt"
+
+
+def radial_distance(pj1, pj2):
+    """Distance in the rapidity-azimuth plane
+    between two pseudojets, in the format used
+    in this file.
+    """
+    return np.sqrt((pj1[1]-pj2[1])**2 + (pj1[2]-pj1[2])**2)
 
 
 @dataclass
 class EventVisualizer:
+    # File from which to read
     filename : str = _event_vis_file
 
-    total_pt: float = None
-    abs_rap_max: float = 5
-    has_particles : bool = False
-
+    # Event properties
     event_dict = None
+    total_pt: float = None
+    has_particles : bool = False
+    # Event plotting properties
+    max_rap: float = None
+    min_rap: float = None
+    max_phi: float = None
+    min_phi: float = None
 
+    # Jet properties
+    radius: float = None # None  # FIX -- no default here
+    close_jet_inds = None 
+
+    # Figures
     scatter_ax = None
     ax_3d = None
 
 
     def read_file(self):
+        """Reads and stores event data from self.filename."""
         # Reading event from self.filename
-        event = text_to_list(self.filename, use_rows=lambda x: float(x[1]) > 0)
+        event, kwargs = text_to_list(self.filename,
+                            None,                       # all columns
+                            lambda x:float(x[1]) > 0,   # rows with pt>0
+                            'radius')                   # find radius
+        self.radius = float(kwargs['radius'])
 
         # Finding number of jets and establishing a colorbar for
         # visualizing hardest jets as red, softest as blue
@@ -49,31 +73,91 @@ class EventVisualizer:
         # Initializing event information
         self.event_dict = {}
         self.total_pt = 0
+        self.close_jet_inds = []
 
+        # Information for plot boundaries
+        max_raps = []
+        max_phis = []
+        min_raps = []
+        min_phis = []
+
+        # ---------------------------------
         # Storing information for each jet
+        # ---------------------------------
         for ijet in np.arange(1, self.num_jets+1):
             self.event_dict[ijet] = {}
 
+            # Jet info
             jet = [np.array(part[1:4]).astype(np.float64)
                    for part in event
                    if part[0] == 'J' and int(part[4]) == ijet][0]
             self.event_dict[ijet]['jet'] = jet
             self.total_pt += jet[0]
 
-            particles = ([np.array(part[1:4]).astype(np.float64)
+            # Particle info
+            particles = np.array(([np.array(part[1:4]).astype(np.float64)
                           for part in event
-                          if part[0] == 'P' and int(part[4]) == ijet])
-            self.event_dict[ijet]['particles'] = np.array(particles)
+                          if part[0] == 'P' and int(part[4]) == ijet]))
+            self.event_dict[ijet]['particles'] = particles
 
-            ghosts = ([np.array(part[1:4]).astype(np.float64)
-                       for part in event
-                       if part[0] == 'G' and int(part[4]) == ijet])
-            self.event_dict[ijet]['ghosts'] = np.array(ghosts)
+            # Ghost info
+            ghosts = np.array(([np.array(part[1:4]).astype(np.float64)
+                       for part in event if part[0] == 'G' and int(part[4]) == ijet]))
+            self.event_dict[ijet]['ghosts'] = ghosts
+
+            # Marking jets closer together than the jet radius
+            for jjet in self.event_dict.keys():
+                if jjet >= ijet: break
+                if radial_distance(self.event_dict[ijet]['jet'],
+                        self.event_dict[jjet]['jet']) < self.radius/10:
+                    [self.close_jet_inds.append(ind)
+                     for ind in [ijet, jjet]]
+            
+            # - - - - - - - - - - - - - - - - -
+            # Setting plot params based on event info
+            # - - - - - - - - - - - - - - - - -
+            for pjs in [ghosts, particles]:
+                # Ghosts should subsume particles, but considering both
+                # makes bugs easier to catch and is more generalizable.
+                if len(pjs) > 0:
+                    max_raps.append(np.max([pj[1] for pj in pjs]))
+                    min_raps.append(np.min([pj[1] for pj in pjs]))
+                    max_phis.append(np.max([pj[2] for pj in pjs]))
+                    min_phis.append(np.min([pj[2] for pj in pjs]))
+
+        # Setting global plot params
+        self.max_rap = np.max(max_raps)
+        self.min_rap = np.min(min_raps)
+        self.max_phi = np.max(max_phis)
+        self.min_phi = np.min(min_phis)
 
         self.has_particles = True
+        self.close_jet_inds = np.unique(self.close_jet_inds)
+
+        return
+
+    
+    def set_plot_params(max_rap=None, min_rap=None,
+                        max_phi=None, min_phi=None):
+        """Sets the parameters for the visualization plots
+        to values other than the defaults set by event info.
+        """
+        # Setting given params
+        if max_rap is not None:
+            self.max_rap = max_rap
+        if min_rap is not None:
+            self.min_rap = min_rap
+        if max_phi is not None:
+            self.max_phi = max_phi
+        if min_phi is not None:
+            self.min_phi = min_phi
+        return
 
 
     def scatter_vis(self, pj_type=None):
+        """Visualizes the event stored in self.event_dict as a scatter plot.
+        Includes particles, jets, and ghosts (jet areas) by default.
+        """
         if not self.has_particles:
             self.read_file()
         if self.filename == _event_vis_file:
@@ -84,11 +168,26 @@ class EventVisualizer:
             self.scatter_ax.set_title("Event Visualization")
             self.scatter_ax.set_xlabel(r"Rapidity ($y$)")
             self.scatter_ax.set_ylabel(r"Azimuthal Angle ($\phi$)")
-            self.scatter_ax.set_xlim(-self.abs_rap_max, self.abs_rap_max)
-            self.scatter_ax.set_ylim(0, 2.*np.pi)
-            self.scatter_ax.set_aspect(self.abs_rap_max/np.pi)
+            self.scatter_ax.set_xlim(self.min_rap, self.max_rap)
+            self.scatter_ax.set_ylim(self.min_phi, self.max_phi)
+            
+            # DEBUG: Why is nobody changing the aspect ratio? I
+            # specifically requested it.
+            self.scatter_ax.set_aspect((self.max_rap-self.min_rap)
+                                       /(self.max_phi-self.min_phi))
 
-        if pj_type is not None:
+        if pj_type is None:
+            # Plotting ghosts (background), then jets,
+            # then particles (foreground)
+            for pj_cat in ['ghosts', 'jet', 'particles']:
+                self.scatter_vis(pj_cat)
+            plt.show()
+
+        else:
+            # Plotting the given type of data
+            if pj_type == 'jet':
+                print(f"Marking jets closer than {self.radius/10 = }"
+                      +" with a translucent red 'X'.")
             for i in range(self.num_jets):
                 color = self.colors[i]
                 ijet = i+1
@@ -97,9 +196,9 @@ class EventVisualizer:
                 if len(pj_data) > 0:
                     pts, ys, phis = pj_data[0], pj_data[1], pj_data[2]
                     if pj_type == 'particles':
-                        s = pts/2
+                        s = pts*5
                     elif pj_type == 'jet':
-                        s = pts/100
+                        s = pts*20
                     elif pj_type == 'ghosts':
                         s = np.ones(len(pts))*10
                     else:
@@ -109,11 +208,10 @@ class EventVisualizer:
                     self.scatter_ax.scatter(ys, phis, s=s,
                         color=adjust_lightness(color, color_scale[pj_type]),
                         **scatter_style[pj_type])
-
-        else:
-            for pj_cat in ['ghosts', 'jet', 'particles']:
-                self.scatter_vis(pj_cat)
-            plt.show()
+                    if pj_type == 'jet' and ijet in self.close_jet_inds:
+                        self.scatter_ax.scatter(ys, phis, s=750, alpha=.2,
+                                                color='r', marker='X',
+                                                zorder=5)
 
 
     def vis_3d(self, pj_type=None):

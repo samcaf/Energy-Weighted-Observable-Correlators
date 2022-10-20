@@ -116,7 +116,10 @@ class plot_pid_pT(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
         pt_filename = process_folder(**vars(namespace))\
             + str(values) + "-pt-spectrum.txt" 
-        text_to_hist(pt_filename, xlabel=fr"$p^{{\rm PID = {values}}}_T$")
+        text_to_hist(pt_filename,
+                     xlabel=fr"$p^{{\rm PID = {values}}}_T$",
+                     nbins=2500, binspace='lin')
+                     #nbins=25, binspace='log')
         show()
         exit()
 

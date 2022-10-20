@@ -452,11 +452,17 @@ def get_hist_edges_centers(obs_vals, weights, nbins, binspace,
     return (hist, bin_edges, bin_centers)
 
 
-def text_to_list(filename, use_cols=None, use_rows=None):
+def text_to_list(filename, use_cols=None, use_rows=None,
+                 *kwarg_keys):
     # - - - - - - - - - - - - - - - - -
     # Reading file
     # - - - - - - - - - - - - - - - - -
-    data = [] 
+    data = []
+
+    # Allowing us to store and return extra data from the file,
+    if kwarg_keys != ():  # if we are given extra info to look for
+        kwargs = {key: None for key in kwarg_keys}
+
     with open(filename, "r") as file:
         for irow, line in enumerate(file):
             # Read and format the line
@@ -466,6 +472,12 @@ def text_to_list(filename, use_cols=None, use_rows=None):
             # Additional information:
             if info[0] == "#" or '' in info:
                 # Allowing commented or empty lines
+                continue
+            if info[0] in kwarg_keys:
+                # Assuming we have a row of the form
+                # ```[key] = [value]```
+                # in the given text file
+                kwargs[info[0]] = info[2]
                 continue
 
             # Selecting rows based on given criterion
@@ -493,6 +505,8 @@ def text_to_list(filename, use_cols=None, use_rows=None):
                 data.append([val for i, val in enumerate(info)
                              if i in use_cols])
 
+    if kwarg_keys != ():
+        return np.array(data), kwargs
     return np.array(data)
 
 
@@ -502,7 +516,12 @@ def text_to_hist(filename, use_cols=0, use_rows=None,
                  nbins=100, binspace='lin',
                  weight_fn=lambda x: np.ones(len(x)),
                  plot_style='plot', save=None,
+                 color=None,
                  **kwargs):
+    # Default arguments
+    if color is None:
+        color='cornflowerblue'
+
     # Getting data from text file
     data = text_to_list(filename, use_cols=use_cols,
                         use_rows=use_rows)
@@ -528,17 +547,21 @@ def text_to_hist(filename, use_cols=0, use_rows=None,
                                              nbins=nbins,
                                              binspace=binspace)
     if plot_style == 'plot':
-        ax[0].plot(xs, ys, **style_solid)
+        ax[0].plot(xs, ys, color=color, **style_solid)
     elif plot_style == 'errorbar':
         ax[0].errorbar(xs, ys, yerr=np.sqrt(ys/len(ys)),
                    xerr=(xs - x_edges[:-1], x_edges[1:] - xs),
-                   **modstyle)
+                   color=color, **modstyle)
     elif plot_style == 'scatter':
-        ax[0].scatter(xs, ys, **style_scatter)
+        ax[0].scatter(xs, ys, color=color, **style_scatter)
 
     ax[0].autoscale()
-    plt.xlim(left=0)
-    plt.ylim(bottom=0)
+    if binspace == 'log':
+        ax[0].set_xscale('log')
+        ax[0].set_ylabel('Log-normalized Probability Density')
+    else:
+        plt.xlim((0, 50))
+        plt.ylim(bottom=0)
 
     if save is not None:
         fig.savefig(save, bbox_inches='tight')

@@ -410,7 +410,7 @@ lims = {'costheta': {('linear', 'linear'):
                         ((2e-3, 1e3), (0, .9)),
                       ('log', 'log'):
                         ((1.0, 1e3), (1e-4, .7))
-                      },
+                      }
         }
 
 
@@ -429,7 +429,7 @@ def expected_obs_peak(obsname, **kwargs):
         peak = expected_E_hard/mass**2.
     elif obsname == 'kt':
         expected_E_soft = E_cm/10
-        peak = expected_E_soft * 4.*mass**2./E_cm**2.
+        peak = expected_E_soft * 2.*mass/E_cm
     else:
         raise AssertionError(f"Invalid {obsname = }")
 
@@ -850,8 +850,8 @@ def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
                                        for rsub in kwargs['sub_rad']]
                              )
 
-        # Setting up color cycle; parton=green, hadron=gold
-        [a.set_prop_cycle((cycler(color=['limegreen', 'gold']))) 
+        # Setting up color cycle; parton=blue, hadron=red/brown
+        [a.set_prop_cycle((cycler(color=['royalblue', 'chocolate']))) 
          for a in ax]
 
         # Iterating over jet and subjet radii:
@@ -867,7 +867,9 @@ def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
                            binspace=binspace,
                            y_scale=y_scale,
                            hist_weight=hist_weight,
-                           title=None, label=level)
+                           title=None, label=level,
+                           plot_expectation=(level=='Parton'), 
+                           **kwargs)
 
         # Stamp text and legend
         stamp_ax(ax[0], jet_rad=None, sub_rad=None, obsname=obsname, 

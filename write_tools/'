@@ -18,7 +18,6 @@
 #include <string>
 #include <vector>
 #include <stdexcept>
-#include <algorithm>  // std::max and std::min
 
 #include <assert.h>
 
@@ -160,36 +159,6 @@ double SumEnergy(const PseudoJets pjs) {
 }
 
 
-double get_min_rap(const PseudoJets pjs, const double least_accepted) {
-    return std::min_element(pjs.begin(), pjs.end(),
-        [least_accepted](PseudoJet pj1, PseudoJet pj2) {
-            return pj1.rap() < pj2.rap() and pj1.rap() > least_accepted;
-        })->rap();
-}
-
-double get_max_rap(const PseudoJets pjs, const double greatest_accepted) {
-    return std::max_element(pjs.begin(), pjs.end(),
-        [greatest_accepted](PseudoJet pj1, PseudoJet pj2) {
-            return pj1.rap() < pj2.rap() and pj2.rap() < greatest_accepted;
-        })->rap();
-}
-
-
-double get_min_phi(const PseudoJets pjs) {
-    return std::min_element(pjs.begin(), pjs.end(),
-        [](PseudoJet pj1, PseudoJet pj2) {
-            return pj1.phi() < pj2.phi();
-        })->phi();
-}
-
-double get_max_phi(const PseudoJets pjs) {
-    return std::max_element(pjs.begin(), pjs.end(),
-        [](PseudoJet pj1, PseudoJet pj2) {
-            return pj1.phi() < pj2.phi();
-        })->phi();
-}
-
-
 // ---------------------------------
 // Pair-level utilities
 // ---------------------------------
@@ -254,7 +223,7 @@ R"(# ####################################
 std::string event_vis_footer = R"(
 # ########## END EVENT INFO ##########)";
 
-
+`
 void write_ptyphi_pj(const PseudoJet pj,
                      std::ofstream& file,
                      std::string p_type) {
@@ -290,8 +259,7 @@ void write_ptyphis_jets(const PseudoJets particles,
     file << event_vis_header;
     file << "\n# Storing particles and jet information associated with this event.\n";
     file << "\n# Using jet definition with description:\n# "
-         << jet_def.description() << "\n";
-    file << "radius = " << jet_def.R() << "\n\n";
+         << jet_def.description() << "\n\n";
     // Finding jets
     ClusterSequence sub_cluster_seq(particles, jet_def);
     PseudoJets jets = sorted_by_pt(sub_cluster_seq.inclusive_jets());
@@ -321,11 +289,19 @@ void write_ptyphis_jets(const PseudoJets particles,
 // Ghost Particle Utilities
 // =====================================
 // Ghost grid: Default boundaries
-const double _ghost_maxrap = 5;         // maximum rapidity of the ghosts
-const double _ghost_minrap = -5;        // minimum rapidity of the ghosts
-const double _ghost_maxphi = twopi;     // maximum phi
-const double _ghost_minphi = 0;         // minimum phi
+extern const double _ghost_maxrap;
+extern const double _ghost_minrap;
+extern const double _ghost_minphi;
+extern const double _ghost_maxphi;
+// Ghost grid: Default misc. params
+extern const double _ghost_area;
+extern const double _mean_ghost_pt;
+extern const Selector _no_selector;
 
+// Ghost grid: Default boundaries
+const double _ghost_maxrap = 5;               // maximum rapidity of the ghosts
+const double _ghost_midrap = 0;               // middle of the ghost rapidity grid
+                                              
 // Ghost grid: Default misc. params
 const double _ghost_area = 0.005;              // changes density of ghosts
 const double _mean_ghost_pt = 1e-100;         // mean ghost pt
@@ -375,14 +351,12 @@ PseudoJets uniform_ghosts(const double min_rap,
     double dphi = drap;
 
     // Using nearest int for number of grid rows/cols
-    double nrap = int((max_rap-min_rap) / (2*drap));
-    int nphi = int((max_phi-min_phi) / (2*dphi));
-    // Factor of 2 to go from -N to N in the iteration over ghosts;
-    // legacy from fastjet code.
+    double nrap = int((max_rap/2.-min_rap/2.) / drap);
+    int nphi = int((max_phi-min_phi) / dphi);
 
     // Re-evaluating grid spacing and parameters
-    drap = (max_rap-min_rap) / (2*nrap);
-    dphi = (max_phi-min_phi) / (2*nphi);
+    drap = (max_rap/2.-min_rap/2.) / nrap;
+    dphi = (max_phi-min_phi) / nphi;
     // ghost_area = dphi * drap;  // not while ghost_area is const
 
     // int n_ghosts = (2*nrap+1)*nphi;
@@ -392,12 +366,11 @@ PseudoJets uniform_ghosts(const double min_rap,
     // - - - - - - - - - - - - - - - - -
     // Iterating over grid
     for (int irap = -nrap; irap <= nrap-1; irap++) {
-        for (int iphi = -nphi; iphi < nphi; iphi++) {
+        for (int iphi = 0; iphi < nphi; iphi++) {
             // Grid points and pT, plus random offsets
-            double phi = (iphi+0.5) * dphi + dphi*(rand()%1 - 0.5)*grid_scatter
-                                                          + (max_phi+min_phi)/2.;
+            double phi = (iphi+0.5) * dphi + dphi*(rand()%1 - 0.5)*grid_scatter;
             double rap = (irap+0.5) * drap + drap*(rand()%1 - 0.5)*grid_scatter
-                                                          + (max_rap+min_rap)/2.;
+                                                               + (max_rap+min_rap)/2.;
             double pt = mean_ghost_pt*(1 + (rand()%1 - 0.5)*pt_scatter);
 
             // Initializing ghost particle
@@ -437,32 +410,12 @@ void write_ptyphis_jets_with_ghosts(const PseudoJets particles,
                 + "```write_ptyphis_jets_with_ghosts```");
 
     // - - - - - - - - - - - - - - - - -
-    // Setting up ghost grid
-    // - - - - - - - - - - - - - - - - -
-    // Getting parameters associated with given particles
-    double max_rap = get_max_rap(particles);
-    double min_rap = get_min_rap(particles);
-    double max_phi = get_max_phi(particles);
-    double min_phi = get_min_phi(particles);
-
-    double grid_area = (max_rap - min_rap) * (max_phi - min_phi);
-    // Use same number of ghosts as for default full grid
-    double ghost_area = .005 / (10 * twopi) * grid_area;
-
-    // Initializing ghosts
-    PseudoJets ghosts = uniform_ghosts(min_rap-jet_def.R(),
-                                       max_rap+jet_def.R(),
-                                       // Extending limits by jet radius;
-                                       std::max(min_phi-jet_def.R(), double(0.0)),
-                                       std::min(max_phi + jet_def.R(), twopi),
-                                       // also, respecting limits on phi.
-                                       ghost_area);
-
-    // - - - - - - - - - - - - - - - - -
     // Active Ghosts
     // - - - - - - - - - - - - - - - - -
     if (str_eq(ghost_type, "active")) {
-        PseudoJets active_ghost_event = add_events(particles, ghosts);
+        max_deltarap = ;
+        mid_rap = ;
+        PseudoJets active_ghost_event = add_events(particles, uniform_ghosts());
         write_ptyphis_jets(active_ghost_event, jet_def, file,
                 write_ghost_jets ? &accept_all_nonempty : &not_ghost_jet);
         return;
@@ -476,7 +429,7 @@ void write_ptyphis_jets_with_ghosts(const PseudoJets particles,
         write_ptyphis_jets(particles, jet_def, file);
 
         // Write ghosts one by one to event
-        for (auto ghost : ghosts) {
+        for (auto ghost : uniform_ghosts()) {
             // Adding single ghost to event (defn of "passive ghosts")
             PseudoJets passive_ghost_event = particles;
             passive_ghost_event.push_back(ghost);

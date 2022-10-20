@@ -201,7 +201,8 @@ int main (int argc, char* argv[]) {
         // - - - - - - - - - - - - - - - - -
         // Visualizing Subjets
         // - - - - - - - - - - - - - - - - -
-        if (iev == 0 and write_event) {
+        if (write_event and iev == n_events-1) {
+            // Visualizing the last event to be generated
             std::ofstream event_vis_file;
             std::string event_filename =
                 remove_extension(ewoc_file_label(argc, argv))

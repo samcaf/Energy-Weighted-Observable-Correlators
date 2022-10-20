@@ -7,12 +7,12 @@ A set of C++ and python-based tools for calculating energy-weighted differential
 
 ## Table of Contents
 
-- [Background](#background)
-  - [Jets](#jets)
-  - [Sub-jets](#subjets)
 - [Usage](#usage)
   - [Setup](#setup)
   - [Visualization](#vis)
+- [Background](#background)
+  - [Jets](#jets)
+  - [Sub-jets](#subjets)
 - [Maintainers](#maintainers)
 - [Contributing](#contributing)
 - [License](#license)

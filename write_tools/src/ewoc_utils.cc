@@ -110,7 +110,7 @@ void store_jet_subpair_info(const PseudoJet jet,
     // Finding subjets using the given subjet radius
     PseudoJets subjets;
     if (subjetR == 0)
-        subjets = jet.constituents();
+        subjets = sorted_by_pt(jet.constituents());
     else {
         JetDefinition subjet_def(subjet_algorithm, subjetR, sub_recomb);
         ClusterSequence sub_cluster_seq(jet.constituents(), subjet_def);

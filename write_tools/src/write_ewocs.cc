@@ -201,7 +201,11 @@ int main (int argc, char* argv[]) {
         // - - - - - - - - - - - - - - - - -
         // Visualizing Subjets
         // - - - - - - - - - - - - - - - - -
-        if (write_event and iev == n_events-1) {
+        has_narrow_emission = false;  // DEBUG : Add to above to search for narrow emissions
+        visualize_event = (str_eq(write_event, "last") and iev == n_events-1)
+            or (str_eq(write_event, "narrow") and has_narrow_emission)
+
+        if (str_eq(write_event, "last") and iev == n_events-1) {
             // Visualizing the last event to be generated
             std::ofstream event_vis_file;
             std::string event_filename =
@@ -230,12 +234,24 @@ int main (int argc, char* argv[]) {
             std::cout << "Printed event " << iev << " to " << event_filename << "\n";
             event_vis_file.close();
 
+
+            // - - - - - - - - - - - - - - - - -
+            // Scripting for plot generation
+            // - - - - - - - - - - - - - - - - -
             // Making a file which points to the most recent event visualization instance.
             // Allows easier command line interface
             std::ofstream event_vis_pointer;
-            event_vis_pointer.open("event_vis_pointer.txt");
-            event_vis_pointer << event_filename;
+            event_vis_pointer.open("event_vis_pointer.txt", std::ios_base::app);
+            event_vis_pointer << event_filename << " ";
             event_vis_pointer.close();
+
+            // Making a file which points to the most recent event visualization instance.
+            // Allows easier command line interface
+            std::ofstream event_vis_pointer;
+            event_vis_script.open("event_vis_script.sh", std::ios_base::app);
+            event_vis_script << "./plot_tools/event_vis --filename " << event_filename
+                             << " scatter_vis\n";
+            event_vis_script.close();
         }
     } // end event loop
 

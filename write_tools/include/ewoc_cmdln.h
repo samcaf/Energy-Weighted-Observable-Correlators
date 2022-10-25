@@ -76,7 +76,7 @@ int verbose_cmdln(int argc, char* argv[]);
 // Writing Options (for later plotting)
 bool writeewocs_cmdln(int argc, char* argv[]);
 int writepidpt_cmdln(int argc, char* argv[]);
-bool writeevent_cmdln(int argc, char* argv[]);
+std::string writeevent_cmdln(int argc, char* argv[]);
 
 // ---------------------------------
 // Advanced Options

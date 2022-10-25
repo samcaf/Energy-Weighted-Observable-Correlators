@@ -710,7 +710,7 @@ bool writeevent_cmdln(int argc, char* argv[]) {
         if(str_eq(argv[iarg], "--write_event"))
             return str_to_bool(argv[iarg+1]);
     }
-    return false;  // Default: do not write an event
+    return "None";  // Default: do not write an event
 }
 
 

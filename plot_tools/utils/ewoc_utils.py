@@ -164,7 +164,8 @@ def ewoc_text_to_dict(filename, pair_obs=None,
     # ---------------------------------
     # Observables
     if pair_obs is None:
-        pair_obs = [pair_costheta, pair_formtime, pair_mass, pair_kt]
+        pair_obs = [pair_costheta, pair_formtime, pair_mass,
+                    pair_kt, pair_e1]
     if not isinstance(pair_obs, list):
         # Making sure observables are stored in a list
         pair_obs = [pair_obs]
@@ -349,6 +350,18 @@ def pair_formtime(Etot, z1, z2, costheta):
 def pair_kt(Etot, z1, z2, costheta):
     return Etot * min(z1, z2) * np.sin(np.arccos(costheta))
 
+# Angularities
+def pair_angularity(Etot, z1, z2, costheta, beta):
+    return min(z1, z2) * np.arccos(costheta)**beta
+    # / (z1 + z2)? i.e. angularity of the splitting?
+
+def pair_e1(Etot, z1, z2, costheta):
+    return pair_angularity(Etot, z1, z2, costheta, beta=1.0)
+
+# Generalized Jet Energy Correlation Functions
+def pair_GECF(Etot, z1, z2, costheta, beta):
+    return z1*z2 * np.arccos(costheta)**beta
+    # / (z1 + z2)? i.e. GECF of the splitting?
 
 # =====================================
 # Plotting Utilites 
@@ -410,7 +423,16 @@ lims = {'costheta': {('linear', 'linear'):
                         ((2e-3, 1e3), (0, .9)),
                       ('log', 'log'):
                         ((1.0, 1e3), (1e-4, .7))
-                      }
+                      },
+         'e1'       : {('linear', 'linear'): 
+                        ((0, .25), (0, 20)),
+                      ('linear', 'log'): 
+                        ((0, .25), (.1, 50)),
+                      ('log', 'linear'):
+                        ((3e-5, 1e0), (0, .5)),
+                      ('log', 'log'):
+                        ((1e-6, .2), (.1, 50))
+                      },
         }
 
 
@@ -430,6 +452,9 @@ def expected_obs_peak(obsname, **kwargs):
     elif obsname == 'kt':
         expected_E_soft = E_cm/10
         peak = expected_E_soft * 2.*mass/E_cm
+    elif obsname == 'e1':
+        expected_E_soft = E_cm/10
+        peak = expected_E_soft * 2.*mass/E_cm**2
     else:
         raise AssertionError(f"Invalid {obsname = }")
 

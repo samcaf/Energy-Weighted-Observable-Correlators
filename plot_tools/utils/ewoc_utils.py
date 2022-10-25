@@ -164,8 +164,9 @@ def ewoc_text_to_dict(filename, pair_obs=None,
     # ---------------------------------
     # Observables
     if pair_obs is None:
-        pair_obs = [pair_costheta, pair_formtime, pair_mass,
-                    pair_kt, pair_e1]
+        pair_obs = [pair_costheta,  # Usual EEC
+                    pair_formtime, pair_mass,  # Helpful observables
+                    pair_kt, pair_e1]  # Helpless observables
     if not isinstance(pair_obs, list):
         # Making sure observables are stored in a list
         pair_obs = [pair_obs]
@@ -233,7 +234,7 @@ def ewoc_text_to_dict(filename, pair_obs=None,
 
 
 def ewoc_dict_to_hists(data_dict, hist_dict=None,
-                       nbins=250, binspaces=['linear', 'log']):
+                       nbins=100, binspaces=['linear', 'log']):
     """
     Takes in the location of an ewoc formatted file.
     Returns a dict with (roughly)
@@ -311,6 +312,8 @@ def obs_label(observable):
         return r'Formation Time (GeV$^{-1}$)'
     elif observable == 'kt':
         return r'$k_T$ (GeV)'
+    elif observable == 'e1':
+        return r'$e^{(1)} = k_T/p_T^{(\rm jet)}$'
 
 def obs_title(observable):
     """Returns a title for plotting the given observable
@@ -326,6 +329,8 @@ def obs_title(observable):
         return r'Formation Time Subjet EWOC'
     elif observable == 'kt':
         return r'$k_T$ Subjet EWOC'
+    elif observable == 'e1':
+        return r'$e^{(1)} = k_T/p_T$ Subjet EWOC'
 
 
 # ---------------------------------
@@ -336,6 +341,8 @@ def pair_costheta(Etot, z1, z2, costheta):
     return costheta
 
 def pair_z(Etot, z1, z2, costheta):
+    # Not actually used as of 10-24:
+    # ctr-f ```if key == 'costheta'``` for more info
     return (1.-costheta)/2.
 
 def pair_m2(Etot, z1, z2, costheta):
@@ -702,6 +709,8 @@ def plot_hist_dict_peaks(hist_dicts, obsname,
 def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
                           hist_weight=None,
                           obsnames=None,
+                          overwrite=False,
+                          show=True,
                           **kwargs):
     # Typesetting keyword arguments
     for key, value in kwargs.items():
@@ -719,7 +728,7 @@ def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
             
     # Saving data
     for rsub in kwargs['sub_rad']:
-        save_hist_dict(overwrite=False, print_every_n=print_every_n,
+        save_hist_dict(overwrite=overwrite, print_every_n=print_every_n,
                        **dict(kwargs, sub_rad=rsub))
     
     # Loading and processing data all given subjet radii
@@ -785,7 +794,8 @@ def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
         if obsname != 'costheta':
             plot_hist_dict_peaks(hist_dicts, obsname, binspace='log', **kwargs)
 
-    plt.show()
+    if show:
+        plt.show()
 
     return
 
@@ -797,6 +807,8 @@ def plot_EWOC_by_sub_rads(load=True, print_every_n=1000,
 def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
                           hist_weight=None,
                           obsnames=None,
+                          overwrite=False,
+                          show=True,
                           **kwargs):
     # Turning the keyword argument for (sub)jet radii into a list
     for key, value in kwargs.items():
@@ -814,7 +826,7 @@ def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
                                 kwargs['jet_rad'],
                                 kwargs['sub_rad'],
                                 ['parton', 'hadron']):
-        save_hist_dict(overwrite=False, print_every_n=print_every_n,
+        save_hist_dict(overwrite=overwrite, print_every_n=print_every_n,
                        **dict(kwargs, qcd_level=level,
                               jet_rad=Rjet, sub_rad=rsub))
 
@@ -902,7 +914,8 @@ def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
                         if key not in ['jet_rad', 'sub_rad']})
         ax[2 if ratio_plot else 1].legend(loc="upper center")
 
-        plt.show()
+        if show:
+            plt.show()
         
 
 # ---------------------------------
@@ -912,6 +925,8 @@ def plot_EWOC_pvh_by_rads(load=True, print_every_n=1000,
 def plot_EWOC_by_frag_temps(load=True, print_every_n=1000,
                             hist_weight=None,
                             obsnames=None,
+                            overwrite=False,
+                            show=True,
                             **kwargs):
     # Turning the keyword argument for fragmentation temperature into a list
     for key, value in kwargs.items():
@@ -926,7 +941,7 @@ def plot_EWOC_by_frag_temps(load=True, print_every_n=1000,
             
     # Saving data
     for temp in kwargs['temp']:
-        save_hist_dict(overwrite=False, print_every_n=print_every_n,
+        save_hist_dict(overwrite=overwrite, print_every_n=print_every_n,
                        **dict(kwargs, temp=temp))
 
     # Loading and processing data for all given temperatures 
@@ -988,4 +1003,5 @@ def plot_EWOC_by_frag_temps(load=True, print_every_n=1000,
                      **{key: val for key, val in kwargs.items()
                             if key not in ['jet_rad', 'sub_rad']})
 
-    plt.show()
+    if show:
+        plt.show()

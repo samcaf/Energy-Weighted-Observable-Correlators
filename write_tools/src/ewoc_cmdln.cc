@@ -696,11 +696,21 @@ bool writeewocs_cmdln(int argc, char* argv[]) {
 
 int writepidpt_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
-        // Determines whether EWOC output is written
+        // Determines whether PID pT output is written
         if(str_eq(argv[iarg], "--write_pt_pid"))
             return atoi(argv[iarg+1]);
     }
     return 0;  // Default no PID pt
+}
+
+
+int writejetpt_cmdln(int argc, char* argv[]) {
+    for(int iarg=0;iarg<argc;iarg++) {
+        // Determines whether jet pT output is written
+        if(str_eq(argv[iarg], "--write_pt_jet"))
+            return str_to_bool(argv[iarg+1]);
+    }
+    return false;
 }
 
 

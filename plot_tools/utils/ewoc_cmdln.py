@@ -120,7 +120,8 @@ class plot_pid_pT(argparse.Action):
                      xlabel=fr"$p^{{\rm PID = {values}}}_T$",
                      nbins=2500, binspace='lin')
                      #nbins=25, binspace='log')
-        show()
+        if vars(namespace)['show']:
+            show()
         exit()
 
 
@@ -153,7 +154,8 @@ class plot_soft_energy(argparse.Action):
                              col_func=soft_energy,
                              use_rows=valid_row,
                              fig=fig, ax=ax)
-        show()
+        if vars(namespace)['show']:
+            show()
         exit()
 
 
@@ -257,7 +259,7 @@ ewoc_parser.add_argument("-T", "--frag_temp",
 ewoc_parser.add_argument("--plot_type",
             dest="plot_type", type=str,
             help="Argument which sets the type of plot to create."\
-                 +"Can be:\n*'sub_rad';\n'pvh';\n*'thermal'.",
+                 +"Can be:\n*'sub_rad';\n'pvh';\n*'thermal';",
             default='sub_rad',
             required=False)
                 
@@ -268,7 +270,7 @@ ewoc_parser.add_argument("--plot_pid_pt",
                  +"process."\
                  +"\nRelies on input from the"\
                  +"```--write_pid_pt``` option of "
-                 +"```write_ewocs```.",
+                 +"```write_ewocs```;",
             default=None,
             required=False)
 
@@ -276,7 +278,31 @@ ewoc_parser.add_argument("--plot_soft_energy",
             action=plot_soft_energy, nargs=0,
             help="Optional argument which histograms the energy "\
                   "carried by the softer subjet in every pair of"\
-                  "subjets found using the specified jet parameters.",
+                  "subjets found using the specified jet parameters;",
             default=None,
             required=False)
 
+
+def str2bool(v):
+    if isinstance(v, bool):
+        return v
+    if v.lower() in ('yes', 'true', 't', 'y', '1'):
+        return True
+    elif v.lower() in ('no', 'false', 'f', 'n', '0'):
+        return False
+    else:
+        raise argparse.ArgumentTypeError('Boolean value expected.')
+
+ewoc_parser.add_argument("--overwrite_hists",
+            type=str2bool, nargs='?',
+            const=True, default=False,
+            dest="overwrite", 
+            help="Flag determining whether to overwrite existing data"
+                +" when generating plots;")
+ewoc_parser.set_defaults(feature=True)
+
+ewoc_parser.add_argument("--show_plots", 
+            type=str2bool, nargs='?',
+            const=True, default=True,
+            dest="show", 
+            help="Flag determining whether to show plots;")

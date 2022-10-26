@@ -74,15 +74,24 @@ std::vector<int> store_event_subpair_info(const PseudoJets particles,
                            std::ofstream& jet_pt_file,
                            std::ofstream& subjet_pt_file,
                            const std::string return_info) {
+
     // Setup
     bool write_jet_pt = jet_pt_file.is_open();
     std::vector<int> event_info;
+
+    // Muting FastJet banner
+    std::streambuf *old = cout.rdbuf();
+    stringstream ss; ss.str("");
+    cout.rdbuf (ss.rdbuf());  // Redirect output
 
     // - - - - - - - - - - - - - - - - -
     // Finding jets that match our cuts
     // - - - - - - - - - - - - - - - - -
     JetDefinition jet_def(jet_algorithm, jetR, jet_recomb);
     ClusterSequence cluster_seq(particles, jet_def);
+
+    cout.rdbuf (old);  // Restore output
+
 
     // Getting all jets in the event with pt > pt_min
     PseudoJets all_jets = sorted_by_pt(cluster_seq.inclusive_jets(pt_min));

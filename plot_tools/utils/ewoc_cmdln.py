@@ -1,6 +1,6 @@
 import argparse
 
-from matplotlib.pyplot import show
+from matplotlib.pyplot import legend, show
 
 from sys import exit
 
@@ -161,16 +161,40 @@ class plot_soft_energy(argparse.Action):
 # Plot pT associated with jets 
 class plot_jet_pT(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
+        fig, ax = aestheticfig(ratio_plot=False, showdate=False,
+                               xlabel="Jet Property (GeV)")
+
+        # Finding pT spectrum directly
         pt_filename = ewoc_folder(**vars(namespace))\
             + "jet-pt-spectrum"\
             + "_min"+str(round(vars(namespace)['pt_min']))\
             + "_max"+str(round(vars(namespace)['pt_max']))\
             + ".txt" 
-        print(pt_filename)
         text_to_hist(pt_filename,
                      xlabel=r"$p^{\rm jet}_T$",
                      nbins=25, binspace='lin',
-                     upper_x=2200)
+                     upper_x=2200,
+                     label=r"$p_T$ Spectrum",
+                     color="steelblue",
+                     fig=fig, ax=ax)
+
+        # As a common sense check, finding it independently
+        # jet info in the relevant EWOC file
+        def valid_row(row_info):
+            return row_info[0] == 'J'
+
+        filename = ewoc_file_label(**vars(namespace))
+        filename += '.txt'
+
+        text_to_hist(filename, use_cols=[1],
+                     use_rows=valid_row,
+                     nbins=25, binspace='lin',
+                     upper_x=2200,
+                     label=r"Energy Spectrum",
+                     color="lightcoral",
+                     fig=fig, ax=ax)
+        legend()
+
         if vars(namespace)['show']:
             show()
         exit()

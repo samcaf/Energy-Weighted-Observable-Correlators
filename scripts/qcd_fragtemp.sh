@@ -5,12 +5,6 @@
 # ==========================
 ./scripts/get_args.sh $argv
 
-echo $argv
-
-echo "--generate_events "$generate_events
-echo "--overwrite_hists "$overwrite_hists
-echo "--show_plots "$show_plots
-
 
 # ==========================
 # Writing

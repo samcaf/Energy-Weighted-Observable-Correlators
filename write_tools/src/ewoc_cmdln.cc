@@ -196,8 +196,15 @@ int checkCmdInputs(int argc, char* argv[]) {
             return 1;
         }
     }
-    // Print the flag text for fun if asking for verbose output
-    if (verbose > 1) std::cout << flag_text << "\n\n";
+
+    // Verbose output
+    if (verbose >= 0) {
+        std::cout << flag_text << "\n\n";
+        std::cout << "Function call:\n    ";
+        while( argc-- ) std::cout << *(argv++) << " ";
+        std::cout << "\n\n";
+    }
+
 
     // ---------------------------------
     // Checks on input parameters
@@ -269,13 +276,6 @@ int checkCmdInputs(int argc, char* argv[]) {
         }
     }
 
-    // Verbosity
-    if (verbose >= 1) {
-        std::cout << "Function call:\n    ";
-        while( argc-- ) std::cout << *(argv++) << " ";
-        std::cout << "\n\n";
-    }
-
     // Advanced Options
     if (!str_eq(event_gen, _PYTHIA_STR) and !str_eq(event_gen, _HERWIG_STR)) {
         std::cout << "Event generator must be " + _PYTHIA_STR + " or " + _HERWIG_STR
@@ -324,7 +324,7 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
     // Pythia setup
     // ---------------------------------
     // Get default options
-    pythia.readFile("ewoc_setup.cmnd");
+    pythia.readFile("write_tools/src/ewoc_setup.cmnd");
 
     // Give process information to Pythia
     if (str_eq(process_str, "quark") or str_eq(process_str, "gluon")) {
@@ -348,15 +348,18 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
 
         // Process specific interactions
         if (str_eq(process_str, "qcd")) {
-            std::cout << "e+ e- -> hadrons, \n";
+            std::cout << "\n# ---------------------------------"
+                      << "\ne+ e- -> hadrons, ";
             // gm, Z, or gmZ in the s-channel
             pythia.readString("WeakSingleBoson:ffbar2ffbar(s:"
                     + s_channel + ") = on");
         } else if (str_eq(process_str, "w")) {
-            std::cout << "e+ e- -> W W, \n";
+            std::cout << "\n# ---------------------------------"
+                      << "\ne+ e- -> W W, ";
             pythia.readString("WeakDoubleBoson:ffbar2WW = on");
         } else if (str_eq(process_str, "top")) {
-            std::cout << "e+ e- -> t tbar, \n";
+            std::cout << "\n# ---------------------------------"
+                      << "\ne+ e- -> t tbar, ";
             // gm, Z, or gmZ in the s-channel
             pythia.readString("Top:ffbar2ttbar(s:"
                     + s_channel + ") = on");
@@ -366,11 +369,13 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
     // Beam energy
     if (E_cm != _ECM_DEFAULT) {
         std::cout << "beam E_cm: "
-                  << std::to_string(E_cm/1000.) << " TeV.\n";
+                  << std::to_string(E_cm/1000.) << " TeV.\n"
+                  << "# ---------------------------------\n";
         pythia.readString("Beams:eCM = " + std::to_string(E_cm));
     }
     else {
-        std::cout << "beam E_cm: 4 TeV.\n";
+        std::cout << "beam E_cm: 4 TeV.\n"
+                  << "# ---------------------------------\n";
         pythia.readString("Beams:eCM = 4000");
     }
 
@@ -393,7 +398,8 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
         pythia.readString("Next:numberShowInfo = 0");
         pythia.readString("Next:numberShowProcess = 0");
         pythia.readString("Next:numberShowEvent = 0");
-
+    }
+    if (verbose < 1) {
         pythia.readString("Stat:showProcessLevel = off");
         pythia.readString("Stat:showErrors = off");
     }

@@ -22,6 +22,7 @@ __status__ = "Production"
 import os.path
 import numpy as np
 import matplotlib.pyplot as plt
+from math import comb
 
 # Analysis imports
 from scipy.signal import find_peaks_cwt
@@ -136,7 +137,8 @@ def get_hist_dict(load=True, save=True, print_every_n=1000,
 
 def ewoc_text_to_dict(filename, pair_obs=None,
                       print_every_n=1000,
-                      weight='energy fraction'):
+                      weighting='energy fraction',
+                      run_checks=False):
     """
     Reads in a text file in the form provided by write_ewocs(.cc).
     Returns a dict whose highest keys are 'info' and a list of subjet radii,
@@ -188,24 +190,54 @@ def ewoc_text_to_dict(filename, pair_obs=None,
     # Reading file
     # ---------------------------------
     with open(filename, "r") as file:
+        # Additional info for verification:
+        num_subjets = -1
+        num_subjet_pairs = -1
+
+        # Looping over file
         for i, line in enumerate(file):
             # Read and format the line
             line = line.rstrip("\n")
             info = line.split(" ")
 
-            # Additional information:
+            # - - - - - - - - - - - - - - - - -
+            # Misc. information:
+            # - - - - - - - - - - - - - - - - -
             if info[0] == "#" or '' in info:
                 # Allowing commented or empty lines
                 continue
+
             elif info[0] not in event_headers:
                 # Storing additional information from file header
                 data_dict[info[0]] = info[-1]
                 continue
 
+            # - - - - - - - - - - - - - - - - -
+            # Jet Information
+            # - - - - - - - - - - - - - - - - -
             if info[0] == "J":
                 E_jet = float(info[1])
 
+                if run_checks:
+                    # Additional verification that we consider
+                    # only subjet pairs within a single jet
+                    if num_subjets != -1:
+                        # Assert that the number of subjet pairs is
+                        # consistent with the number of subjets
+                        assert comb(num_subjets, 2) == num_subjet_pairs\
+                            or 2.*comb(num_subjets, 2) == num_subjet_pairs,\
+                            f"{num_subjets = } not compatible with "+\
+                            "number of subjet pairs "+\
+                            f"({num_subjet_pairs = }, "+\
+                            f"expected {comb(num_subjets, 2) = })."
+                    num_subjets = int(info[2])
+                    num_subjet_pairs = 0
+
+            # - - - - - - - - - - - - - - - - -
+            # Subjet Pair Information
+            # - - - - - - - - - - - - - - - - -
             if info[0] == "SP":
+                num_subjet_pairs += 1
                 # Convert strings to floats
                 try:
                     z1, z2, costheta = (float(x) for x in info[1:])
@@ -229,7 +261,9 @@ def ewoc_text_to_dict(filename, pair_obs=None,
                 for obsname, obs in zip(obsnames, pair_obs):
                     data_dict[obsname].append(obs(E_jet, z1, z2, costheta))
 
+            # - - - - - - - - - - - - - - - - -
             # Event information
+            # - - - - - - - - - - - - - - - - -
             if info[0] == "E":
                 if i_event%print_every_n == 0:
                     # Better logging

@@ -159,13 +159,18 @@ int main (int argc, char* argv[]) {
     // - - - - - - - - - - - - - - - - -
     // Set up event generator
     // - - - - - - - - - - - - - - - - -
-    // Basic Declarations
-    Pythia8::Pythia pythia;
+    // Declarations (muting banners)
+    std::streambuf *old = cout.rdbuf();
+    stringstream ss; ss.str("");
+    if (verbose < 3) cout.rdbuf (ss.rdbuf());  // Redirect output
+
+    Pythia8::Pythia pythia;  // Declaring Pythia8
+
+    cout.rdbuf (old);  // Restore output
 
     // Setup
-    if (str_eq(event_gen, "pythia")) {
+    if (str_eq(event_gen, "pythia"))
         setup_pythia_ewoc_cmdln(pythia, argc, argv);
-    }
     else if (str_eq(event_gen, "herwig"))
         throw Error("Invalid event generator herwig");
     else
@@ -202,44 +207,25 @@ int main (int argc, char* argv[]) {
                     << "E " << std::to_string(iev+1) << "\n";
         }
 
+        // - - - - - - - - - - - - - - - - -
         // Storing EWOC or pT info for this event in the output file
-        std::vector<int> narrow_emission_info = store_event_subpair_info(particles,
+        std::vector<int> narrow_emission_info;
+        narrow_emission_info = store_event_subpair_info(particles,
                                  jet_alg, jet_rad, jet_recomb,
                                  sub_alg, sub_rad, sub_recomb,
                                  pt_min, pt_max,
                                  ewoc_outfile,
                                  jet_pt_outfile, subjet_pt_outfile,
                                  "num_narrow_emissions");
+
         // Counting the number of narrow emissions in the leading jet
-        num_narrow_emissions = narrow_emission_info.at(0);
-
-
+        if (narrow_emission_info.size() > 0)
+            num_narrow_emissions = narrow_emission_info.at(0);
         // - - - - - - - - - - - - - - - - -
-        // Writing pT associated with PID
-        // - - - - - - - - - - - - - - - - -
-        if (write_pid_pt != 0) {
-            // Looking for particle with given PID in this event
-            for (int ipart = 0; ipart < event.size(); ipart++) {
-                if (event[ipart].id() == write_pid_pt) {
-                    // Opening file if this is the first sighting
-                    if (not seen_pid_pt) {
-                        seen_pid_pt = true;
-                        std::string pid_pt_filename = process_folder(argc, argv)
-                            + std::to_string(write_pid_pt) + "-pt-spectrum.txt";
-                        cout << "Writing pT spectrum for PID " << write_pid_pt
-                             << " to " << pid_pt_filename << "\n";
-                        pid_pt_outfile.open(pid_pt_filename);
-                    }
-                    // Storing pT
-                    pid_pt_outfile << sqrt(pow(event[ipart].px(), 2.) + pow(event[ipart].py(), 2.))
-                                   << "\n";
-                }
-            }
-        }
+
 
         // - - - - - - - - - - - - - - - - -
         // Visualizing Subjets
-        // - - - - - - - - - - - - - - - - -
         bool visualize_event = (str_eq(write_event, "last") and iev == n_events-1)
             or (str_eq(write_event, "narrow_emissions") and num_narrow_emissions > 0);
 
@@ -282,6 +268,31 @@ int main (int argc, char* argv[]) {
             event_vis_script << "./plot_tools/event_vis --filename " << event_filename
                              << " scatter_vis\n";
         }
+        // - - - - - - - - - - - - - - - - -
+
+
+        // - - - - - - - - - - - - - - - - -
+        // Writing pT associated with PID
+        if (write_pid_pt != 0) {
+            // Looking for particle with given PID in this event
+            for (int ipart = 0; ipart < event.size(); ipart++) {
+                if (event[ipart].id() == write_pid_pt) {
+                    // Opening file if this is the first sighting
+                    if (not seen_pid_pt) {
+                        seen_pid_pt = true;
+                        std::string pid_pt_filename = process_folder(argc, argv)
+                            + std::to_string(write_pid_pt) + "-pt-spectrum.txt";
+                        cout << "Writing pT spectrum for PID " << write_pid_pt
+                             << " to " << pid_pt_filename << "\n";
+                        pid_pt_outfile.open(pid_pt_filename);
+                    }
+                    // Storing pT
+                    pid_pt_outfile << sqrt(pow(event[ipart].px(), 2.) + pow(event[ipart].py(), 2.))
+                                   << "\n";
+                }
+            }
+        }
+        // - - - - - - - - - - - - - - - - -
     } // end event loop
 
     // Verifying successful run
@@ -291,7 +302,11 @@ int main (int argc, char* argv[]) {
         auto stop = high_resolution_clock::now();
         auto duration = duration_cast<microseconds>(stop - start);
         std::cout << "Analyzed and saved data from " + std::to_string(n_events)
-        << " events in " << std::to_string(float(duration.count())/pow(10, 6)) << " seconds.";
+        << " events in " << std::to_string(float(duration.count())/pow(10, 6)) << " seconds.\n";
+    }
+    if (verbose >= 2) {
+        if (str_eq(event_gen, "pythia"))
+            pythia.stat();
     }
 
     // - - - - - - - - - - - - - - - - -

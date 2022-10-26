@@ -517,7 +517,7 @@ def text_to_hist(filename, use_cols=0, use_rows=None,
                  weight_fn=lambda x: np.ones(len(x)),
                  plot_style='plot', save=None,
                  upper_x=50,
-                 color=None,
+                 label=None, color=None,
                  **kwargs):
     # Default arguments
     if color is None:
@@ -548,13 +548,13 @@ def text_to_hist(filename, use_cols=0, use_rows=None,
                                              nbins=nbins,
                                              binspace=binspace)
     if plot_style == 'plot':
-        ax[0].plot(xs, ys, color=color, **style_solid)
+        ax[0].plot(xs, ys, label=label, color=color, **style_solid)
     elif plot_style == 'errorbar':
         ax[0].errorbar(xs, ys, yerr=np.sqrt(ys/len(ys)),
                    xerr=(xs - x_edges[:-1], x_edges[1:] - xs),
-                   color=color, **modstyle)
+                   label=label, color=color, **modstyle)
     elif plot_style == 'scatter':
-        ax[0].scatter(xs, ys, color=color, **style_scatter)
+        ax[0].scatter(xs, ys, label=label, color=color, **style_scatter)
 
     ax[0].autoscale()
     if binspace == 'log':

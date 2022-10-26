@@ -100,12 +100,12 @@ int main (int argc, char* argv[]) {
     std::string event_gen     = eventgen_cmdln(argc, argv);
 
     // - - - - - - - - - - - - - - - - -
-    // Output Settings
+    // Output Settings and Setup
     // - - - - - - - - - - - - - - - - -
     // Determines whether EWOC output is written
     bool        write_ewocs   = writeewocs_cmdln(argc, argv);
-    // Set up EWOC output file
     std::ofstream ewoc_outfile;
+    // Set up EWOC output file
     if (write_ewocs) {
         cout << "\nWriting EWOC data to "
              << ewoc_file_label(argc, argv);
@@ -120,8 +120,41 @@ int main (int argc, char* argv[]) {
     // Set up PID pT output file
     std::ofstream pid_pt_outfile;
 
+    // Determines whether jet and subjet pT spectrum is written
+    bool        write_jet_pt  = writejetpt_cmdln(argc, argv);
+    std::ofstream jet_pt_outfile;
+    std::ofstream subjet_pt_outfile;
+    // Set up output files
+    if (write_jet_pt) {
+        // Jet pT Spectrum
+        std::string jet_pt_filename = ewoc_folder(argc, argv) + "jet-pT-spectrum"
+            + "_min"+str_round(pt_min, 0) + "_max"+str_round(pt_max, 0) + ".txt";
+        cout << "\nWriting jet pt spectrum to " << jet_pt_filename;
+        jet_pt_outfile.open(jet_pt_filename);
+        jet_pt_outfile << "# Jet pT spectrum for " << jet_alg_int_to_str(jet_alg)
+                       << " jets with R = " << jet_rad;
+
+        // Subjet pT Spectrum
+        std::string subjet_pt_filename = ewoc_folder(argc, argv) + "subjet-pT-spectrum_"
+            + jet_alg_int_to_str(sub_alg) + "_r"+str_round(sub_rad, 2)
+            + "_min" + +"_max";
+        subjet_pt_filename = periods_to_hyphens(subjet_pt_filename) + ".txt";
+        cout << "\nWriting subjet pt spectrum to " << subjet_pt_filename;
+        subjet_pt_outfile.open(subjet_pt_filename);
+        subjet_pt_outfile << "# Subjet pT spectrum for " << jet_alg_int_to_str(sub_alg)
+                          << " subjets with r = " << str_round(sub_rad, 2);
+    }
+
     // Determines whether event output is written
-    bool        write_event   = writeevent_cmdln(argc, argv);
+    std::string write_event   = writeevent_cmdln(argc, argv);
+    // Making files which point to event visualization files and
+    //  run the visualization. Allows easier command line interface.
+    std::ofstream event_vis_pointer;
+    std::ofstream event_vis_script;
+    if (not str_eq(write_event, "")) {
+        event_vis_pointer.open("event_vis_pointer.txt", std::ios_base::app);
+        event_vis_script.open("event_vis_script.sh", std::ios_base::app);
+    }
 
     // - - - - - - - - - - - - - - - - -
     // Set up event generator
@@ -142,8 +175,10 @@ int main (int argc, char* argv[]) {
     // Analyzing events
     // ---------------------------------
     for (int iev = 0; iev < n_events; iev++) {
-        // Initializing particles in this event
+        // Initializing particles and info for this event
         PseudoJets particles;
+
+        int num_narrow_emissions = 0;
 
         // Considering next event, if valid
         if(!pythia.next()) continue;
@@ -158,22 +193,26 @@ int main (int argc, char* argv[]) {
         else
             throw Error("Invalid event generator");
 
-
         // - - - - - - - - - - - - - - - - -
-        // Writing EWOC Data
+        // Writing Jet Data
         // - - - - - - - - - - - - - - - - -
-        if (write_ewocs) {
-            // Writing header for this event
+        // Writing headers for this event
+        if (ewoc_outfile.is_open()) {
             ewoc_outfile << "# =========================\n"
                     << "E " << std::to_string(iev+1) << "\n";
-
-            // Storing EWOC info for this event in the output file
-            store_event_subpair_info(particles,
-                                     jet_alg, jet_rad, jet_recomb,
-                                     sub_alg, sub_rad, sub_recomb,
-                                     pt_min, pt_max,
-                                     ewoc_outfile);
         }
+
+        // Storing EWOC or pT info for this event in the output file
+        std::vector<int> narrow_emission_info = store_event_subpair_info(particles,
+                                 jet_alg, jet_rad, jet_recomb,
+                                 sub_alg, sub_rad, sub_recomb,
+                                 pt_min, pt_max,
+                                 ewoc_outfile,
+                                 jet_pt_outfile, subjet_pt_outfile,
+                                 "num_narrow_emissions");
+        // Counting the number of narrow emissions in the leading jet
+        num_narrow_emissions = narrow_emission_info.at(0);
+
 
         // - - - - - - - - - - - - - - - - -
         // Writing pT associated with PID
@@ -201,12 +240,13 @@ int main (int argc, char* argv[]) {
         // - - - - - - - - - - - - - - - - -
         // Visualizing Subjets
         // - - - - - - - - - - - - - - - - -
-        has_narrow_emission = false;  // DEBUG : Add to above to search for narrow emissions
-        visualize_event = (str_eq(write_event, "last") and iev == n_events-1)
-            or (str_eq(write_event, "narrow") and has_narrow_emission)
+        bool visualize_event = (str_eq(write_event, "last") and iev == n_events-1)
+            or (str_eq(write_event, "narrow_emissions") and num_narrow_emissions > 0);
 
-        if (str_eq(write_event, "last") and iev == n_events-1) {
-            // Visualizing the last event to be generated
+        if (visualize_event) {
+            // - - - - - - - - - - - - - - - - -
+            // Saving data for event visualization
+            // - - - - - - - - - - - - - - - - -
             std::ofstream event_vis_file;
             std::string event_filename =
                 remove_extension(ewoc_file_label(argc, argv))
@@ -238,20 +278,9 @@ int main (int argc, char* argv[]) {
             // - - - - - - - - - - - - - - - - -
             // Scripting for plot generation
             // - - - - - - - - - - - - - - - - -
-            // Making a file which points to the most recent event visualization instance.
-            // Allows easier command line interface
-            std::ofstream event_vis_pointer;
-            event_vis_pointer.open("event_vis_pointer.txt", std::ios_base::app);
             event_vis_pointer << event_filename << " ";
-            event_vis_pointer.close();
-
-            // Making a file which points to the most recent event visualization instance.
-            // Allows easier command line interface
-            std::ofstream event_vis_pointer;
-            event_vis_script.open("event_vis_script.sh", std::ios_base::app);
             event_vis_script << "./plot_tools/event_vis --filename " << event_filename
                              << " scatter_vis\n";
-            event_vis_script.close();
         }
     } // end event loop
 
@@ -268,11 +297,24 @@ int main (int argc, char* argv[]) {
     // - - - - - - - - - - - - - - - - -
     // Closing output files
     // - - - - - - - - - - - - - - - - -
-    // EWOC Output
+    // EWOC output
     if (write_ewocs) ewoc_outfile.close();
-    // pT Output for given particle ID
+
+    // pT output for given particle ID
     if (seen_pid_pt) pid_pt_outfile.close();
     else if (write_pid_pt != 0) cout << "No particles seen with the given PID (for pT analysis).\n";
+
+    // Jet pT spectrum output
+    if (write_jet_pt) {
+        jet_pt_outfile.close();
+        subjet_pt_outfile.close();
+    }
+
+    // Event visualization output
+    if (not str_eq(write_event, "")) {
+        event_vis_pointer.close();
+        event_vis_script.close();
+    }
 
     return 0;
 }

@@ -1,6 +1,5 @@
 import argparse
 
-from numpy import inf
 from matplotlib.pyplot import show
 
 from sys import exit
@@ -159,6 +158,25 @@ class plot_soft_energy(argparse.Action):
         exit()
 
 
+# Plot pT associated with jets 
+class plot_jet_pT(argparse.Action):
+    def __call__(self, parser, namespace, values, option_string=None):
+        pt_filename = ewoc_folder(**vars(namespace))\
+            + "jet-pt-spectrum"\
+            + "_min"+str(round(vars(namespace)['pt_min']))\
+            + "_max"+str(round(vars(namespace)['pt_max']))\
+            + ".txt" 
+        print(pt_filename)
+        text_to_hist(pt_filename,
+                     xlabel=r"$p^{\rm jet}_T$",
+                     nbins=25, binspace='lin',
+                     upper_x=2200)
+        if vars(namespace)['show']:
+            show()
+        exit()
+
+
+
 # ---------------------------------
 # Basic Options (Required)
 # ---------------------------------
@@ -202,7 +220,7 @@ ewoc_parser.add_argument("-r", "--sub_rad",
 # ---------------------------------
 
 default_args    = {'pt_min':    0,
-                   'pt_max':    inf,
+                   'pt_max':    1e5,
                    'E_cm':      4000,
                    'temp':      None,
                    's_channel': 'gmZ'}
@@ -272,6 +290,15 @@ ewoc_parser.add_argument("--plot_pid_pt",
                  +"```--write_pid_pt``` option of "
                  +"```write_ewocs```;",
             default=None,
+            required=False)
+
+ewoc_parser.add_argument("--plot_jet_pt", nargs=0, 
+            action=plot_jet_pT,
+            help="Optional argument which histograms the pT of jets "
+                 +"with given parameters in the given process."\
+                 +"\nRelies on input from the"\
+                 +"```--write_jet_pt``` option of "
+                 +"```write_ewocs```;",
             required=False)
 
 ewoc_parser.add_argument("--plot_soft_energy", 

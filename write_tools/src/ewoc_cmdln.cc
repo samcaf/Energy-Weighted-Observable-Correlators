@@ -242,8 +242,8 @@ int checkCmdInputs(int argc, char* argv[]) {
         return 1;
     }
 
-    if (pt_min <= 0 and pt_min != -1){
-        std::cout << "pt_min must be positive.\n";
+    if (pt_min < 0){
+        std::cout << "pt_min must be positive or zero.\n";
         return 1;
     }
 
@@ -633,7 +633,7 @@ double ptmin_cmdln(int argc, char* argv[]) {
         if(str_eq(argv[iarg], "--pt_min"))
             return atof(argv[iarg+1]);
     }
-    return -1;
+    return 0;
 }
 
 double ptmax_cmdln(int argc, char* argv[]) {
@@ -642,7 +642,7 @@ double ptmax_cmdln(int argc, char* argv[]) {
         if(str_eq(argv[iarg], "--pt_max"))
             return atof(argv[iarg+1]);
     }
-    return std::numeric_limits<double>::max();
+    return 100000;
 }
 
 
@@ -697,30 +697,30 @@ bool writeewocs_cmdln(int argc, char* argv[]) {
 int writepidpt_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         // Determines whether PID pT output is written
-        if(str_eq(argv[iarg], "--write_pt_pid"))
+        if(str_eq(argv[iarg], "--write_pid_pt"))
             return atoi(argv[iarg+1]);
     }
     return 0;  // Default no PID pt
 }
 
 
-int writejetpt_cmdln(int argc, char* argv[]) {
+bool writejetpt_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         // Determines whether jet pT output is written
-        if(str_eq(argv[iarg], "--write_pt_jet"))
+        if(str_eq(argv[iarg], "--write_jet_pt"))
             return str_to_bool(argv[iarg+1]);
     }
     return false;
 }
 
 
-bool writeevent_cmdln(int argc, char* argv[]) {
+std::string writeevent_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         // Determines whether event output is written
         if(str_eq(argv[iarg], "--write_event"))
-            return str_to_bool(argv[iarg+1]);
+            return argv[iarg+1];
     }
-    return "None";  // Default: do not write an event
+    return "";  // Default: do not write an event
 }
 
 

@@ -46,7 +46,6 @@ using namespace Pythia8;
 using namespace fastjet;
 
 
-
 // =====================================
 // typedefs
 // =====================================
@@ -59,7 +58,7 @@ using namespace fastjet;
 // EWOC Storage Utilities
 // =====================================
 
-void store_event_subpair_info(const PseudoJets particles,
+std::vector<int> store_event_subpair_info(const PseudoJets particles,
                            const JetAlgorithm jet_algorithm,
                            const double jetR,
                            const RecombinationScheme jet_recomb,
@@ -67,12 +66,17 @@ void store_event_subpair_info(const PseudoJets particles,
                            const double subjetR,
                            const RecombinationScheme sub_recomb,
                            const double pt_min, const double pt_max,
-                           std::ofstream& file);
+                           std::ofstream& ewoc_file,
+                           std::ofstream& jet_pt_file,
+                           std::ofstream& subjet_pt_file,
+                           const std::string return_info="num_narrow_emissions");
 
-void store_jet_subpair_info(const PseudoJet jet,
+int store_jet_subpair_info(const PseudoJet jet,
                          const JetAlgorithm subjet_algorithm,
                          const double subjetR,
                          const RecombinationScheme sub_recomb,
-                         std::ofstream& file);
+                         std::ofstream& ewoc_file,
+                         std::ofstream& subjet_pt_file,
+                         const std::string return_info="num_narrow_emissions");
 
 #endif

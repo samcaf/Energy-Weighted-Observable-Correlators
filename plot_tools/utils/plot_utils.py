@@ -516,6 +516,7 @@ def text_to_hist(filename, use_cols=0, use_rows=None,
                  nbins=100, binspace='lin',
                  weight_fn=lambda x: np.ones(len(x)),
                  plot_style='plot', save=None,
+                 upper_x=50,
                  color=None,
                  **kwargs):
     # Default arguments
@@ -560,7 +561,7 @@ def text_to_hist(filename, use_cols=0, use_rows=None,
         ax[0].set_xscale('log')
         ax[0].set_ylabel('Log-normalized Probability Density')
     else:
-        plt.xlim((0, 50))
+        plt.xlim((0, upper_x))
         plt.ylim(bottom=0)
 
     if save is not None:

@@ -135,7 +135,8 @@ def get_hist_dict(load=True, save=True, print_every_n=1000,
 # =====================================
 
 def ewoc_text_to_dict(filename, pair_obs=None,
-                      print_every_n=1000):
+                      print_every_n=1000,
+                      weight='energy fraction'):
     """
     Reads in a text file in the form provided by write_ewocs(.cc).
     Returns a dict whose highest keys are 'info' and a list of subjet radii,
@@ -215,7 +216,16 @@ def ewoc_text_to_dict(filename, pair_obs=None,
                     raise ValueError
 
                 # Store relevant EWOC information
-                data_dict['weights'].append(z1 * z2)
+
+                # Weights
+                if weighting == 'energy fraction':
+                    data_dict['weights'].append(z1 * z2)
+                elif weighting == 'energy total':
+                    data_dict['weights'].append(z1 * z2 * E_jet**2)
+                else:
+                    raise ValueError(f"Invalid weighting {weighting}.")
+
+                # Observables
                 for obsname, obs in zip(obsnames, pair_obs):
                     data_dict[obsname].append(obs(E_jet, z1, z2, costheta))
 

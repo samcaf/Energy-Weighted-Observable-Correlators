@@ -18,12 +18,20 @@ scatter_style = {'jet': {'alpha': .5},
 color_scale = {'jet': .5, 'ghosts': .7, 'particles': 1}
 
 
-def radial_distance(pj1, pj2):
+def yphi_distance(pj1, pj2):
     """Distance in the rapidity-azimuth plane
     between two pseudojets, in the format used
     in this file.
     """
     return np.sqrt((pj1[1]-pj2[1])**2 + (pj1[2]-pj1[2])**2)
+
+
+def mod_shift(val, shift_val, mod_val):
+    """Shifts a value val by a shift shift_val, mod mod_val"""
+    val += shift_val
+    while val > mod_val:
+        val -= mod_val
+    return val
 
 
 @dataclass
@@ -46,6 +54,7 @@ class EventVisualizer:
     close_jet_inds = None 
 
     # Figures
+    phi_shift: float = 0
     scatter_ax = None
     ax_3d = None
 
@@ -70,12 +79,6 @@ class EventVisualizer:
         self.event_dict = {}
         self.total_pt = 0
         self.close_jet_inds = []
-
-        # Information for plot boundaries
-        max_raps = []
-        max_phis = []
-        min_raps = []
-        min_phis = []
 
         # ---------------------------------
         # Storing information for each jet
@@ -104,76 +107,130 @@ class EventVisualizer:
             # Marking jets closer together than the jet radius
             for jjet in self.event_dict.keys():
                 if jjet >= ijet: break
-                if radial_distance(self.event_dict[ijet]['jet'],
+                if yphi_distance(self.event_dict[ijet]['jet'],
                         self.event_dict[jjet]['jet']) < self.radius/10:
                     [self.close_jet_inds.append(ind)
                      for ind in [ijet, jjet]]
             
-            # - - - - - - - - - - - - - - - - -
-            # Setting plot params based on event info
-            # - - - - - - - - - - - - - - - - -
-            for pjs in [ghosts, particles]:
-                # Ghosts should subsume particles, but considering both
-                # makes bugs easier to catch and is more generalizable.
-                if len(pjs) > 0:
-                    max_raps.append(np.max([pj[1] for pj in pjs]))
-                    min_raps.append(np.min([pj[1] for pj in pjs]))
-                    max_phis.append(np.max([pj[2] for pj in pjs]))
-                    min_phis.append(np.min([pj[2] for pj in pjs]))
-
-        # Setting global plot params
-        self.max_rap = np.max(max_raps)
-        self.min_rap = np.min(min_raps)
-        self.max_phi = np.max(max_phis)
-        self.min_phi = np.min(min_phis)
-
         self.has_particles = True
         self.close_jet_inds = np.unique(self.close_jet_inds)
 
         return
 
-    
-    def set_plot_params(max_rap=None, min_rap=None,
-                        max_phi=None, min_phi=None):
-        """Sets the parameters for the visualization plots
-        to values other than the defaults set by event info.
-        """
-        # Setting given params
-        if max_rap is not None:
+
+    def set_limits(self, max_rap="use_event", min_rap="use_event",
+                   max_phi="use_event", min_phi="use_event"):
+        """Sets the boundaries for the visualization plots."""
+        # - - - - - - - - - - - - - - - - -
+        # Setting plot params based on event info
+        # - - - - - - - - - - - - - - - - -
+        # Find an appropriate plot boundaries for the event, if we are asked
+        if any([a == "use_event" for a in [max_rap, min_rap, max_phi, min_phi]]):
+            assert self.has_particles,\
+                "No event to use for setting plot boundaries."
+                # Problem if we want to use the event but have no particles
+
+            max_raps = []
+            min_raps = []
+            max_phis = []
+            min_phis = []
+            max_shift_phis = []
+            min_shift_phis = []
+
+            for ijet in np.arange(1, self.num_jets+1):
+                for pjs in [self.event_dict[ijet]['ghosts'],
+                            self.event_dict[ijet]['particles']]:
+                    # Ghosts should subsume particles, but considering both
+                    # makes bugs easier to catch and is more generalizable.
+                    if len(pjs) > 0:
+                        max_raps.append(np.max([pj[1] for pj in pjs]))
+                        min_raps.append(np.min([pj[1] for pj in pjs]))
+                        max_phis.append(np.max([pj[2] for pj in pjs]))
+                        min_phis.append(np.min([pj[2] for pj in pjs]))
+
+                        shifted_phis = [mod_shift(pj[2], np.pi, 2.*np.pi)
+                                        for pj in pjs]
+                        max_shift_phis.append(np.max(shifted_phis))
+                        min_shift_phis.append(np.min(shifted_phis))
+
+            # Setting global plot params
+            if max_rap == "use_event":
+                self.max_rap = np.max(max_raps)
+            if min_rap == "use_event":
+                self.min_rap = np.min(min_raps)
+
+            if max_phi == "use_event" or self.min_phi == "use_event":
+                # Checking if shifted angles make the plot more compact
+                angle_diff = np.max(max_phis) - np.min(min_phis)
+                angle_shift_diff = np.max(max_shift_phis) - np.min(min_shift_phis)
+
+                if angle_shift_diff < angle_diff:
+                    # If they do, shift all angles
+                    max_phi = np.max(max_shift_phis)
+                    min_phi = np.min(min_shift_phis)
+
+                    self.phi_shift = np.pi
+
+                    for ijet in np.arange(1, self.num_jets+1):
+                        for pj_type, pjs in self.event_dict[ijet].items():
+                            if pj_type == "jet":
+                                pjs[2] = mod_shift(pjs[2], np.pi, 2.*np.pi)
+                            else:
+                                for pj in pjs:
+                                    pj[2] = mod_shift(pj[2], np.pi, 2.*np.pi)
+
+                else:
+                    max_phi = np.max(max_phis)
+                    min_phi = np.min(min_phis)
+
+                self.max_phi = max_phi
+                self.min_phi = min_phi
+
+        # - - - - - - - - - - - - - - - - -
+        # Setting any given boundaries 
+        # - - - - - - - - - - - - - - - - -
+        if max_rap is not None and max_rap != "use_event":
             self.max_rap = max_rap
-        if min_rap is not None:
+        if min_rap is not None and min_rap != "use_event":
             self.min_rap = min_rap
-        if max_phi is not None:
+        if max_phi is not None and max_phi != "use_event":
             self.max_phi = max_phi
-        if min_phi is not None:
+        if min_phi is not None and min_phi != "use_event":
             self.min_phi = min_phi
+        
         return
+ 
 
-
-    def scatter_vis(self, pj_type=None):
+    def scatter_vis(self, pj_type=['ghosts', 'jet', 'particles']):
         """Visualizes the event stored in self.event_dict as a scatter plot.
         Includes particles, jets, and ghosts (jet areas) by default.
         """
         if not self.has_particles:
             self.read_file()
+            self.set_limits()
 
         if self.scatter_ax is None:
             _, self.scatter_ax = plt.subplots()
             self.scatter_ax.set_title("Event Visualization")
             self.scatter_ax.set_xlabel(r"Rapidity ($y$)")
-            self.scatter_ax.set_ylabel(r"Azimuthal Angle ($\phi$)")
+            if self.phi_shift == 0:
+                self.scatter_ax.set_ylabel(r"Azimuthal Angle ($\phi$)")
+            elif self.phi_shift == np.pi:
+                self.scatter_ax.set_ylabel("Azimuthal Angle "+\
+                                           r"($\phi - \pi$)")
+            else:
+                self.scatter_ax.set_ylabel("Azimuthal Angle "+\
+                                           r"($\phi$"+f"-{self.phi_shift})")
             self.scatter_ax.set_xlim(self.min_rap, self.max_rap)
             self.scatter_ax.set_ylim(self.min_phi, self.max_phi)
             
-            # DEBUG: Why is nobody changing the aspect ratio? I
-            # specifically requested it.
             self.scatter_ax.set_aspect((self.max_rap-self.min_rap)
                                        /(self.max_phi-self.min_phi))
 
-        if pj_type is None:
-            # Plotting ghosts (background), then jets,
+        if isinstance(pj_type, list):
+            # Default: Plot ghosts (background), then jets,
             # then particles (foreground)
-            for pj_cat in ['ghosts', 'jet', 'particles']:
+            for pj_cat in pj_type:
                 self.scatter_vis(pj_cat)
             plt.show()
 

@@ -327,6 +327,7 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
     pythia.readFile("write_tools/src/ewoc_setup.cmnd");
 
     // Give process information to Pythia
+    std::cout << "\n# ---------------------------------\n#";
     if (str_eq(process_str, "quark") or str_eq(process_str, "gluon")) {
         // quark or gluon --> p p scattering
         pythia.readString("Beams:idA = 2212");
@@ -334,10 +335,10 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
 
         // Process specific interactions
         if (str_eq(process_str, "quark")) {
-            std::cout << "p p ->  q qbar, \n";
+            std::cout << "p p ->  q qbar, ";
             pythia.readString("HardQCD:gg2qqbar = on");
         } else if (str_eq(process_str, "gluon")) {
-            std::cout << "p p ->  g g, \n";
+            std::cout << "p p ->  g g, ";
             pythia.readString("HardQCD:gg2gg = on");
         }
     }
@@ -348,18 +349,15 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
 
         // Process specific interactions
         if (str_eq(process_str, "qcd")) {
-            std::cout << "\n# ---------------------------------"
-                      << "\ne+ e- -> hadrons, ";
+            std::cout << "e+ e- -> hadrons, ";
             // gm, Z, or gmZ in the s-channel
             pythia.readString("WeakSingleBoson:ffbar2ffbar(s:"
                     + s_channel + ") = on");
         } else if (str_eq(process_str, "w")) {
-            std::cout << "\n# ---------------------------------"
-                      << "\ne+ e- -> W W, ";
+            std::cout << "e+ e- -> W W, ";
             pythia.readString("WeakDoubleBoson:ffbar2WW = on");
         } else if (str_eq(process_str, "top")) {
-            std::cout << "\n# ---------------------------------"
-                      << "\ne+ e- -> t tbar, ";
+            std::cout << "e+ e- -> t tbar, ";
             // gm, Z, or gmZ in the s-channel
             pythia.readString("Top:ffbar2ttbar(s:"
                     + s_channel + ") = on");
@@ -369,15 +367,14 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
     // Beam energy
     if (E_cm != _ECM_DEFAULT) {
         std::cout << "beam E_cm: "
-                  << std::to_string(E_cm/1000.) << " TeV.\n"
-                  << "# ---------------------------------\n";
+                  << std::to_string(E_cm/1000.) << " TeV."
         pythia.readString("Beams:eCM = " + std::to_string(E_cm));
     }
     else {
-        std::cout << "beam E_cm: 4 TeV.\n"
-                  << "# ---------------------------------\n";
+        std::cout << "beam E_cm: 4 TeV.";
         pythia.readString("Beams:eCM = 4000");
     }
+    std::cout << "\n# ---------------------------------\";
 
     // Parton or hadron level
     if (str_eq(qcd_level, "parton"))

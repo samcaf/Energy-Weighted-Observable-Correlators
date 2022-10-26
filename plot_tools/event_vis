@@ -2,6 +2,7 @@
 
 import numpy as np
 import matplotlib.pyplot as plt
+from matplotlib import cm
 
 from dataclasses import dataclass
 
@@ -18,6 +19,27 @@ scatter_style = {'jet': {'alpha': .5},
 color_scale = {'jet': .5, 'ghosts': .7, 'particles': 1}
 
 
+def eta_to_theta(eta_val):
+    """Returns the polar angle for a pseudorapidity eta_val."""
+    return 2.*np.arctan(np.exp(-eta_val))
+
+def ptyphis_to_ptthetaphis(pjs):
+    """Returns the pt/theta/phi vals for a set of input
+    pt/y/phi values.
+
+    Assumes that y is approximately theta."""
+    new_pjs = []
+
+    if isinstance(pjs[0], list) or isinstance(pjs[0], np.ndarray):
+        for pj in pjs:
+            new_pjs.append(np.array(
+                [pj[0], eta_to_theta(pj[1]), pj[2]]))
+    else:
+        new_pjs = [pjs[0], eta_to_theta(pjs[1]), pjs[2]]
+
+    return np.array(new_pjs)
+
+
 def yphi_distance(pj1, pj2):
     """Distance in the rapidity-azimuth plane
     between two pseudojets, in the format used
@@ -32,6 +54,47 @@ def mod_shift(val, shift_val, mod_val):
     while val > mod_val:
         val -= mod_val
     return val
+
+
+def data_to_spherepoints_weights(pjs, r=1.):
+    """Takes a list of pt/theta/phi values and returns
+    associated weights and points on the sphere (with radius 1)
+    """
+    spherepoints = []
+    weights = []
+    
+    if isinstance(pjs[0], list) or isinstance(pjs[0], np.ndarray):
+        for pj in pjs:
+            weights.append(pj[0])
+            x = r * np.cos(pj[2]) * np.sin(pj[1]) 
+            y = r * np.sin(pj[2]) * np.sin(pj[1])
+            z = r * np.cos(pj[1])
+            spherepoints.append(np.array([x, y, z]))
+    else:
+        weights = [pjs[0]]
+        x = r * np.cos(pjs[2]) * np.sin(pjs[1]) 
+        y = r * np.sin(pjs[2]) * np.sin(pjs[1])
+        z = r * np.cos(pjs[1])
+        spherepoints = [[x, y, z]]
+
+    return spherepoints, np.array(weights)
+
+
+def near(p, point_list, d0, weights):
+    """For spherical visualization, below.
+    Find an effective weight of points
+    p' within point_list for which p' is
+    nearer to p than d0.
+    """
+    total_weight = 0
+    
+    for i, point in enumerate(point_list):
+        weight = weights[i]
+        dist = np.linalg.norm(p - point)
+        if dist < d0:
+            total_weight += weight * (1 - dist/d0)
+
+    return total_weight
 
 
 @dataclass
@@ -118,8 +181,8 @@ class EventVisualizer:
         return
 
 
-    def set_limits(self, max_rap="use_event", min_rap="use_event",
-                   max_phi="use_event", min_phi="use_event"):
+    def set_yphi_lims(self, max_rap="use_event", min_rap="use_event",
+                      max_phi="use_event", min_phi="use_event"):
         """Sets the boundaries for the visualization plots."""
         # - - - - - - - - - - - - - - - - -
         # Setting plot params based on event info
@@ -207,7 +270,7 @@ class EventVisualizer:
         """
         if not self.has_particles:
             self.read_file()
-            self.set_limits()
+            self.set_yphi_lims()
 
         if self.scatter_ax is None:
             _, self.scatter_ax = plt.subplots()
@@ -264,6 +327,56 @@ class EventVisualizer:
                                                 color='r', marker='X',
                                                 zorder=5)
 
+
+    def sphere_vis(self):
+        """
+        https://stackoverflow.com/a/52964926
+        https://stackoverflow.com/questions/22128909/plotting-the-temperature-distribution-on-a-sphere-with-python
+        """
+        if not self.has_particles:
+            self.read_file()
+
+        # Event analysis
+        event_data = []
+
+        for ijet in np.arange(1, self.num_jets+1):
+            pjs = self.event_dict[ijet]['particles']
+            num_particles = len(ptyphis_to_ptthetaphis(pjs))
+            if ijet == 1:
+                event_data = ptyphis_to_ptthetaphis(pjs)
+            else:
+                event_data = np.concatenate((event_data,
+                                ptyphis_to_ptthetaphis(pjs)))
+        point_list, pts = data_to_spherepoints_weights(event_data)
+
+        # Event visualization on the sphere
+        fig = plt.figure()
+        ax = fig.add_subplot( 1, 1, 1, projection='3d')
+
+        u = np.linspace(0, 2 * np.pi, 120)
+        v = np.linspace(0, np.pi, 60)
+
+        # create the sphere surface
+        XX = 1 * np.outer(np.cos(u), np.sin(v))
+        YY = 1 * np.outer(np.sin(u), np.sin(v))
+        ZZ = 1 * np.outer(np.ones(np.size(u)), np.cos(v))
+
+        WW = XX.copy()
+        for i in range( len( XX ) ):
+            for j in range( len( XX[0] ) ):
+                x = XX[ i, j ]
+                y = YY[ i, j ]
+                z = ZZ[ i, j ]
+                WW[ i, j ] = near(np.array([x, y, z ]), point_list, .1, pts)
+        WW = WW / np.amax( WW )
+        myheatmap = WW
+
+        ax.plot_surface(XX, YY,  ZZ, cstride=1, rstride=1,
+                        facecolors=cm.jet(myheatmap))
+        plt.axis('off')
+        plt.grid(visible=None)
+
+        plt.show() 
 
     def vis_3d(self, pj_type=None):
         # Set up figure

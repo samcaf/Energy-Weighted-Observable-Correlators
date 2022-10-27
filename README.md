@@ -37,12 +37,12 @@ To visualize an example event, try ``./scripts/vis_event_single.sh --process qcd
 I think it might be helpful even for myself to have some notes regarding the file structure here; I hope if you're visiting that it helps you too!
 
 The files in this repository are usually grouped as useful either for "writing", in C++, (data analysis and storage) or "plotting", in python (data visualization). These are stored in the ``write_tools`` folder and the ``plot_tools`` folder, respectively:
-![plot](./doc_figs/basic_structure.pdf)
+![plot](./doc_figs/basic_structure.png)
 The writing and plotting utilities are grouped together into executables, which can be prepared using the ``make`` command in the main folder:
-![plot](./doc_figs/make.pdf)
+![plot](./doc_figs/make.png)
 
 Finally, the scripts in the ``scripts`` folder tie the writing and plotting tools, so that one can more easily understand EWOCs, with fewer presses.
-![plot](./doc_figs/scripts.pdf)
+![plot](./doc_figs/scripts.png)
 I note that I follow the unconventional choice of using the fish shell language in most of these scripts; sorry for any inconvenience.
 
 

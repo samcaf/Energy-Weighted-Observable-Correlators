@@ -38,15 +38,21 @@ I think it might be helpful even for myself to have some notes regarding the fil
 
 The files in this repository are usually grouped as useful either for "writing", in C++, (data analysis and storage) or "plotting", in python (data visualization). These are stored in the ``write_tools`` folder and the ``plot_tools`` folder, respectively:
 
-<img src="./doc_figs/basic_structure.png" width="500" align="center">
+<p align="center">
+<img src="./doc_figs/basic_structure.png" width="500">
+</p>
 
 The writing and plotting utilities are grouped together into executables, which can be prepared using the ``make`` command in the main folder:
 
-<img src="./doc_figs/make.png" width="300" align="center">
+<p align="center">
+<img src="./doc_figs/make.png" width="300">
+</p>
 
 Finally, the scripts in the ``scripts`` folder tie the writing and plotting tools, so that one can more easily understand EWOCs, with fewer presses.
 
-<img src="./doc_figs/scripts.png" width="800" align="center">
+<p align="center">
+<img src="./doc_figs/scripts.png" width="800">
+</p>
 
 I note that I follow the unconventional choice of using the fish shell language in most of these scripts; sorry for any inconvenience.
 

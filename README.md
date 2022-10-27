@@ -26,7 +26,10 @@ A set of C++ and python-based tools for calculating energy-weighted differential
 
 ### <a name="setup"></a> Setup
 
-To set up, go to the Makefile.inc file and edit the locations of the dependencies to ensure they are accurate for your system. Then, it should be enough to use the  ``make`` command of the main directory of this project.
+To set up, go to the ``Makefile.inc`` file and edit the locations of the dependencies to ensure they are accurate for your system. Then, it should be enough to use the  ``make`` command of the main directory of this project. This should prepare the executables and scripts that I have been using to understand EWOCS.
+
+I note that I follow the unconventional choice of using the fish shell language in most of these scripts; sorry for any inconvenience.
+
 
 ### <a name="vis"></a> Visualization
 To visualize an example event, try ``./scripts/vis_event_single.sh --process qcd --level parton`` from the main directory. Other options can also be provided; look at this script and the functions it calls to find out more: ``cat scripts/vis_events_single.sh``.
@@ -42,7 +45,7 @@ The files in this repository are usually grouped as useful either for "writing",
 <img src="./doc_figs/basic_structure.png" width="500">
 </p>
 
-The writing and plotting utilities are grouped together into executables, which can be prepared using the ``make`` command in the main folder:
+The writing and plotting utilities are grouped together into the executables ``write_tools/write_ewocs`` and ``plot_tools/plot_ewocs``, respectively. Events can also be visualized with the executable ``plot_tools/event_vis``. These can all be prepared using the ``make`` command in the main folder:
 
 <p align="center">
 <img src="./doc_figs/make.png" width="300">
@@ -54,7 +57,7 @@ Finally, the scripts in the ``scripts`` folder tie the writing and plotting tool
 <img src="./doc_figs/scripts.png" width="800">
 </p>
 
-I note that I follow the unconventional choice of using the fish shell language in most of these scripts; sorry for any inconvenience.
+I note (again) that I follow the unconventional choice of using the fish shell language in most of these scripts; sorry for any inconvenience.
 
 
 ## <a name="background"></a> Physics Background

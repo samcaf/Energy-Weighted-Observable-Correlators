@@ -37,7 +37,7 @@ To visualize an example event, try ``./scripts/vis_event_single.sh --process qcd
 I think it might be helpful even for myself to have some notes regarding the file structure here; I hope if you're visiting that it helps you too!
 
 The files in this repository are usually grouped as useful either for "writing", in C++, (data analysis and storage) or "plotting", in python (data visualization). These are stored in the ``write_tools`` folder and the ``plot_tools`` folder, respectively:
-![structure](./doc_figs/basic_structure.png | width=100)
+<img src="./doc_figs/basic_structure.png" width="600">
 The writing and plotting utilities are grouped together into executables, which can be prepared using the ``make`` command in the main folder:
 ![make](./doc_figs/make.png)
 

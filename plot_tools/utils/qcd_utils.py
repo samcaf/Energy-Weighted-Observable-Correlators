@@ -89,37 +89,57 @@ def plot_eec_analytic(ax, observable, binspace, Q=2000, acc='nnlo'):
 # Jet algorithm utils
 # ---------------------------------
 
-def alg_to_string(jet_alg_int, latex=True):
+def alg_to_string(jet_alg, latex=True):
     """
     Returns a string naming the jet algorithm with the
     given index.
 
     Parameters
     ----------
-        jet_alg_int : int
+        jet_alg : int
             Integer indicating the FastJet index associated with the jet
             algorithm.
 
     Returns
     -------
         str
-            A LaTeX-compatible string naming the algorithm.
+            A (LaTeX-compatible, if requested) string naming the algorithm.
     """
-    if jet_alg_int in [0, "0"]:
+    # - - - - - - - - - - - - - - - - -
+    # pp algorithms 
+    # - - - - - - - - - - - - - - - - -
+    if jet_alg in [0, "0", "kt"]:
         if latex:
             return r'$k_T$'
         else:
             return 'kt'
-    elif jet_alg_int in [1, "1"]:
+    elif jet_alg in [1, "1", "ca", "cambridge-aachen"]:
         if latex:
             return r'C/A'
         else:
             return 'ca'
-    elif jet_alg_int in [2, "2"]:
+    elif jet_alg in [2, "2", "akt", "anti-kt", "antikt"]:
         if latex:
             return r'anti-$k_T$'
         else:
             return 'akt'
+    # - - - - - - - - - - - - - - - - -
+    # ee algorithms 
+    # - - - - - - - - - - - - - - - - -
+    if jet_alg in ["ee_0", "ee_kt"]:
+        if latex:
+            return r'$k_T^{(e^+ e^-)}$'
+        else:
+            return 'ee_kt'
+    elif jet_alg in ["ee_1", "ee_ca", "ee_cambridge-aachen"]:
+        if latex:
+            return r'C/A$\?^{(e^+ e^-)}$'
+        else:
+            return 'ee_ca'
+    elif jet_alg in ["ee_2", "ee_akt", "ee_anti-kt", "ee_antikt"]:
+        if latex:
+            return r'anti-$k_T^{(e^+ e^-)}$'
+        else:
+            return 'ee_akt'
     else:
-        raise AssertionError("Invalid jet algorithm index " +
-                         str(jet_alg_int))
+        raise AssertionError(f"Invalid jet algorithm {jet_alg}")

@@ -36,4 +36,9 @@ std::string remove_extension(std::string str);
 template<typename T>
 std::vector<T> arange(const T start, const T stop, const T step = 1);
 
+// ---------------------------------
+// Hash utilities
+// ---------------------------------
+constexpr unsigned int hash(const char *s, int off = 0);
+
 #endif

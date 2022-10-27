@@ -35,7 +35,7 @@ def process_folder(qcd_level, process_str, **kwargs):
 
 
 def ewoc_folder(n_events, qcd_level, process_str,
-        jet_alg_int, jet_rad, *args, **kwargs):
+        jet_alg, jet_rad, *args, **kwargs):
     """
     Returns a folder used to store subjet pair information given
     a set of command line inputs
@@ -51,11 +51,11 @@ def ewoc_folder(n_events, qcd_level, process_str,
     """
     return process_folder(qcd_level, process_str, **kwargs)\
         + f"jetR{float(jet_rad):.1f}/".replace(".", "-")\
-        + alg_to_string(jet_alg_int, latex=False) + "jet/"
+        + alg_to_string(jet_alg, latex=False) + "jet/"
 
 
 def ewoc_file_label(n_events, qcd_level, process_str,
-        jet_alg_int, jet_rad, sub_alg_int, sub_rad,
+        jet_alg, jet_rad, sub_alg, sub_rad,
         **kwargs):
     """
     Returns a file used to store subjet pair information given
@@ -70,10 +70,10 @@ def ewoc_file_label(n_events, qcd_level, process_str,
         string : The relevant file.
     """
     folder = ewoc_folder(n_events, qcd_level, process_str,
-                jet_alg_int, jet_rad, sub_alg_int, sub_rad,
+                jet_alg, jet_rad, sub_alg, sub_rad,
                 **kwargs)
     filename = f"subR{float(sub_rad):.2f}".replace(".", "-") + "_"\
-        + alg_to_string(sub_alg_int, latex=False) + "sub"\
+        + alg_to_string(sub_alg, latex=False) + "sub"\
         + "_" + str(n_events) + "evts"
 
     for key in arg_to_str_dict.keys():
@@ -99,15 +99,7 @@ ewoc_parser=argparse.ArgumentParser('Plot EWOC data from Pythia and FastJet')
 # Action class for reading jet algorithm information
 class parse_jet_alg(argparse.Action):
     def __call__(self, parser, namespace, values, option_string=None):
-        if values in ['akt', 'antikt', '2', 2]:
-            alg_int = 2
-        elif values in ['ca', '1', 1]:
-            alg_int = 1
-        elif values in ['kt', '0', 0]:
-            alg_int = 0
-        else:
-            raise AttributeError("Invalid jet algorithm value: {values}")
-        setattr(namespace, self.dest, alg_int)
+        setattr(namespace, self.dest, alg_to_string(values, latex=False))
 
 
 # Plot pT associated with a particular PID
@@ -220,15 +212,17 @@ ewoc_parser.add_argument("-p", "--process_str",
 
 # Jet and subjet information
 ewoc_parser.add_argument("-j", "--jet_alg", 
-            action=parse_jet_alg, dest="jet_alg_int",
+            action=parse_jet_alg, dest="jet_alg",
             default=2,
             help="Jet algorithm: 0 [kt], 1 [ca], or "\
-                 "2 [akt, antikt] (default);")
+                 +"2 [akt, antikt] (default). Can add 'ee_' in front "\
+                 +" for the corresponding e+e- algorithm);")
 ewoc_parser.add_argument("-s", "--sub_alg", 
-            action=parse_jet_alg, dest="sub_alg_int",
+            action=parse_jet_alg, dest="sub_alg",
             default=1,
             help="Subjet algorithm (0 [kt], 1 [ca] (default), "\
-                 +"or 2 [akt, antikt];")
+                 +"or 2 [akt, antikt]. Can add 'ee_' in front "\
+                 +" for the corresponding e+e- algorithm);")
 
 ewoc_parser.add_argument("-R", "--jet_rad", 
             nargs='+', type=float,

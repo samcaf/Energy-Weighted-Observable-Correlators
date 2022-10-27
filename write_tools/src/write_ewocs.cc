@@ -74,17 +74,20 @@ int main (int argc, char* argv[]) {
     // - - - - - - - - - - - - - - - - -
     // Jet Settings
     // - - - - - - - - - - - - - - - - -
-    int         jet_alg_int   = jetalg_cmdln(argc, argv);
+    std::string jet_alg       = jetalgstr_cmdln(argc, argv);
     double      jet_rad       = jetrad_cmdln(argc, argv);
-    int         sub_alg_int   = subalg_cmdln(argc, argv);
+    std::string sub_alg       = subalgstr_cmdln(argc, argv);
     double      sub_rad       = subrad_cmdln(argc, argv);
-
-    JetAlgorithm jet_alg = JetAlgorithm(jet_alg_int);
-    JetAlgorithm sub_alg = JetAlgorithm(sub_alg_int);
 
     // Optional: recombination schemes
     RecombinationScheme jet_recomb = jetrecomb_cmdln(argc, argv);
     RecombinationScheme sub_recomb = subrecomb_cmdln(argc, argv);
+
+    // Getting jet definitions:
+    JetDefinition jet_def = process_JetDef(jet_alg, jet_rad,
+                                           jet_recomb);
+    JetDefinition sub_def = process_JetDef(sub_alg, sub_rad,
+                                           sub_recomb);
 
     // - - - - - - - - - - - - - - - - -
     // Optional Settings
@@ -99,10 +102,13 @@ int main (int argc, char* argv[]) {
     // - - - - - - - - - - - - - - - - -
     std::string event_gen     = eventgen_cmdln(argc, argv);
 
-    // - - - - - - - - - - - - - - - - -
-    // Output Settings and Setup
+
+    // ---------------------------------
+    // Output Setup
+    // ---------------------------------
     // - - - - - - - - - - - - - - - - -
     // Determines whether EWOC output is written
+    // - - - - - - - - - - - - - - - - -
     bool        write_ewocs   = writeewocs_cmdln(argc, argv);
     std::ofstream ewoc_outfile;
     // Set up EWOC output file
@@ -114,13 +120,17 @@ int main (int argc, char* argv[]) {
     }
     else cout << "\nNot writing EWOC data.\n";
 
+    // - - - - - - - - - - - - - - - - -
     // Determines whether pT spectrum is written for given PID
+    // - - - - - - - - - - - - - - - - -
     int         write_pid_pt  = writepidpt_cmdln(argc, argv);
     bool        seen_pid_pt   = false;
     // Set up PID pT output file
     std::ofstream pid_pt_outfile;
 
+    // - - - - - - - - - - - - - - - - -
     // Determines whether jet and subjet pT spectrum is written
+    // - - - - - - - - - - - - - - - - -
     bool        write_jet_pt  = writejetpt_cmdln(argc, argv);
     std::ofstream jet_pt_outfile;
     std::ofstream subjet_pt_outfile;
@@ -131,21 +141,23 @@ int main (int argc, char* argv[]) {
             + "_min"+str_round(pt_min, 0) + "_max"+str_round(pt_max, 0) + ".txt";
         cout << "\nWriting jet pt spectrum to " << jet_pt_filename;
         jet_pt_outfile.open(jet_pt_filename);
-        jet_pt_outfile << "# Jet pT spectrum for " << jet_alg_int_to_str(jet_alg)
+        jet_pt_outfile << "# Jet pT spectrum for " << jet_alg
                        << " jets with R = " << jet_rad;
 
         // Subjet pT Spectrum
         std::string subjet_pt_filename = ewoc_folder(argc, argv) + "subjet-pT-spectrum_"
-            + jet_alg_int_to_str(sub_alg) + "_r"+str_round(sub_rad, 2)
+            + alg_label[sub_alg] + "_r"+str_round(sub_rad, 2)
             + "_min" + +"_max";
         subjet_pt_filename = periods_to_hyphens(subjet_pt_filename) + ".txt";
         cout << "\nWriting subjet pt spectrum to " << subjet_pt_filename;
         subjet_pt_outfile.open(subjet_pt_filename);
-        subjet_pt_outfile << "# Subjet pT spectrum for " << jet_alg_int_to_str(sub_alg)
+        subjet_pt_outfile << "# Subjet pT spectrum for " << sub_alg
                           << " subjets with r = " << str_round(sub_rad, 2);
     }
 
+    // - - - - - - - - - - - - - - - - -
     // Determines whether event output is written
+    // - - - - - - - - - - - - - - - - -
     std::string write_event   = writeevent_cmdln(argc, argv);
     // Making files which point to event visualization files and
     //  run the visualization. Allows easier command line interface.
@@ -156,10 +168,10 @@ int main (int argc, char* argv[]) {
         event_vis_script.open("event_vis_script.sh", std::ios_base::app);
     }
 
-    // - - - - - - - - - - - - - - - - -
-    // Set up event generator
-    // - - - - - - - - - - - - - - - - -
-    // Declarations (muting banners)
+    // ---------------------------------
+    // Event Generator Setup
+    // ---------------------------------
+    // Declarations (muting Pythia banner)
     std::streambuf *old = cout.rdbuf();
     stringstream ss; ss.str("");
     if (verbose < 3) cout.rdbuf (ss.rdbuf());  // Redirect output
@@ -211,12 +223,12 @@ int main (int argc, char* argv[]) {
         // Storing EWOC or pT info for this event in the output file
         std::vector<int> narrow_emission_info;
         narrow_emission_info = store_event_subpair_info(particles,
-                                 jet_alg, jet_rad, jet_recomb,
-                                 sub_alg, sub_rad, sub_recomb,
-                                 pt_min, pt_max,
-                                 ewoc_outfile,
-                                 jet_pt_outfile, subjet_pt_outfile,
-                                 "num_narrow_emissions");
+                                                 jet_def, sub_def,
+                                                 pt_min, pt_max,
+                                                 ewoc_outfile,
+                                                 jet_pt_outfile,
+                                                 subjet_pt_outfile,
+                                                 "num_narrow_emissions");
 
         // Counting the number of narrow emissions in the leading jet
         if (narrow_emission_info.size() > 0)
@@ -241,18 +253,15 @@ int main (int argc, char* argv[]) {
 
             if (sub_rad == 0){
                 // Visualize the whole event
-                JetDefinition jet_def(jet_alg, jet_rad, jet_recomb);
                 write_ptyphis_jets_with_ghosts(particles, jet_def,
                                                event_vis_file, "passive");
             }
             else {
                 // Visualize the subjets of the leading jet in the event
-                JetDefinition jet_def(jet_alg, jet_rad, jet_recomb);
                 ClusterSequence jet_cluster_seq(particles, jet_def);
                 PseudoJets jets = sorted_by_pt(jet_cluster_seq.inclusive_jets());
 
                 PseudoJet lead_jet = jets.at(0);
-                JetDefinition sub_def(sub_alg, sub_rad, sub_recomb);
                 write_ptyphis_jets_with_ghosts(lead_jet.constituents(),
                                                sub_def, event_vis_file,
                                                "passive");

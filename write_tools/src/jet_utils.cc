@@ -40,32 +40,67 @@
 
 using namespace fastjet;
 
+
 // =====================================
-// Error utilities
+// Jet Definition utilities
 // =====================================
-/**
-* @brief: Raises an error if an invalid pairwise observable name is specified.
-*
-* @param: pj1, pj2  The given pseudojets.
-*
-* @return: double Cosine of the angle between the pseudojets.
-*/
-std::string jetalg_error(const JetAlgorithm alg) {
-    throw std::invalid_argument( "Invalid jet algorithm " + std::to_string(alg) );
-    return "ERR";
-}
 
 
-/**
-* @brief: Raises an error if an invalid pairwise observable name is specified.
-*
-* @param: pj1, pj2  The given pseudojets.
-*
-* @return: double Cosine of the angle between the pseudojets.
-*/
-double pairwise_error() {
-    throw std::invalid_argument( "Invalid pairwise observable." );
-    return 0;
+std::map<std::string, std::string> alg_label =
+{
+    // Anti-kt accepted flags
+    { "anti-kt", "akt" },
+    { "antikt", "akt" },
+    { "akt", "akt" },
+    { "2", "akt" },
+    // Cambridge-Aachen accepted flags
+    { "cambridge-aachen", "ca" },
+    { "ca", "ca" },
+    { "1", "ca" },
+    // kt accepted flags
+    { "kt", "kt" },
+    { "0", "kt" },
+    // e+e- Anti-kt accepted flags
+    { "ee_anti-kt", "ee_akt" },
+    { "ee_antikt", "ee_akt" },
+    { "ee_akt", "ee_akt" },
+    { "ee_2", "ee_akt" },
+    // e+e- Cambridge-Aachen accepted flags
+    { "ee_cambridge-aachen", "ee_ca" },
+    { "ee_ca", "ee_ca" },
+    { "ee_1", "ee_ca" },
+    // e+e- kt accepted flags
+    { "ee_kt", "ee_kt" },
+    { "ee_0", "ee_kt" },
+};
+
+JetDefinition process_JetDef(std::string algorithm, double radius,
+                             RecombinationScheme recomb) {
+    // - - - - - - - - - - - - - - - - -
+    // proton-proton algorithms
+    // - - - - - - - - - - - - - - - - -
+    if (str_eq(alg_label[algorithm], "akt"))
+        return JetDefinition(antikt_algorithm, radius, recomb);
+    else if (str_eq(alg_label[algorithm], "ca"))
+        return JetDefinition(cambridge_algorithm, radius, recomb);
+    else if (str_eq(alg_label[algorithm], "kt"))
+        return JetDefinition(kt_algorithm, radius, recomb);
+
+    // - - - - - - - - - - - - - - - - -
+    // electron-positron algorithms
+    // - - - - - - - - - - - - - - - - -
+    else if (str_eq(alg_label[algorithm], "ee_akt"))
+        return JetDefinition(ee_genkt_algorithm, radius, -1,
+                             recomb);
+    else if (str_eq(alg_label[algorithm], "ee_ca"))
+        return JetDefinition(ee_genkt_algorithm, radius, 0,
+                             recomb);
+    else if (str_eq(alg_label[algorithm], "ee_kt"))
+        return JetDefinition(ee_genkt_algorithm, radius, 1,
+                             recomb);
+
+    else
+        throw Error("Invalid jet algorithm " + algorithm);
 }
 
 

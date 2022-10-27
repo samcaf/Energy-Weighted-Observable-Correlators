@@ -40,10 +40,12 @@ std::string level_cmdln(int argc, char* argv[]);
 std::string process_cmdln(int argc, char* argv[]);
 
 // Jet and subjet info
-extern const int _JETALG_DEFAULT;
-extern const int _SUBALG_DEFAULT;
-int jetalg_cmdln(int argc, char* argv[]);
-int subalg_cmdln(int argc, char* argv[]);
+extern const std::string _JETALG_DEFAULT;
+extern const std::string _SUBALG_DEFAULT;
+std::string jetalgstr_cmdln(int argc, char* argv[]);
+std::string subalgstr_cmdln(int argc, char* argv[]);
+/* int jetalg_cmdln(int argc, char* argv[]); */
+/* int subalg_cmdln(int argc, char* argv[]); */
 
 extern const double _JETRAD_DEFAULT;
 extern const double _SUBRAD_DEFAULT;

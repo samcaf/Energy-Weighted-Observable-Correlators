@@ -59,12 +59,8 @@ using namespace fastjet;
 // =====================================
 
 std::vector<int> store_event_subpair_info(const PseudoJets particles,
-                           const JetAlgorithm jet_algorithm,
-                           const double jetR,
-                           const RecombinationScheme jet_recomb,
-                           const JetAlgorithm subjet_algorithm,
-                           const double subjetR,
-                           const RecombinationScheme sub_recomb,
+                           JetDefinition jet_def,
+                           JetDefinition subjet_def,
                            const double pt_min, const double pt_max,
                            std::ofstream& ewoc_file,
                            std::ofstream& jet_pt_file,
@@ -72,11 +68,9 @@ std::vector<int> store_event_subpair_info(const PseudoJets particles,
                            const std::string return_info="num_narrow_emissions");
 
 int store_jet_subpair_info(const PseudoJet jet,
-                         const JetAlgorithm subjet_algorithm,
-                         const double subjetR,
-                         const RecombinationScheme sub_recomb,
-                         std::ofstream& ewoc_file,
-                         std::ofstream& subjet_pt_file,
-                         const std::string return_info="num_narrow_emissions");
+                           JetDefinition subjet_def,
+                           std::ofstream& ewoc_file,
+                           std::ofstream& subjet_pt_file,
+                           const std::string return_info="num_narrow_emissions");
 
 #endif

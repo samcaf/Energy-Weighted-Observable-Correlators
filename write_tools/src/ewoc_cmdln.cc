@@ -16,6 +16,7 @@
 
 // Local imports:
 #include "../include/general_utils.h"
+#include "../include/jet_utils.h"
 #include "../include/ewoc_cmdln.h"
 
 
@@ -167,9 +168,9 @@ int checkCmdInputs(int argc, char* argv[]) {
     int         n_events      = nevents_cmdln(argc, argv);
     std::string qcd_level     = level_cmdln(argc, argv);
     std::string process_str   = process_cmdln(argc, argv);
-    int         jet_alg_int   = jetalg_cmdln(argc, argv);
+    std::string jet_alg       = jetalgstr_cmdln(argc, argv);
     double      jet_rad       = jetrad_cmdln(argc, argv);
-    int         sub_alg_int   = subalg_cmdln(argc, argv);
+    std::string sub_alg       = subalgstr_cmdln(argc, argv);
     double      sub_rad       = subrad_cmdln(argc, argv);
 
     // Optional Settings
@@ -229,18 +230,8 @@ int checkCmdInputs(int argc, char* argv[]) {
         return 1;
     }
 
-    if (jet_alg_int != 0 and jet_alg_int != 1 and jet_alg_int != 2){
-        std::cout << "Jet algorithm must be 0 (kt), 1 (ca), or 2 (antikt).\n";
-        return 1;
-    }
-
     if (jet_rad <= 0){
         std::cout << "Jet radius must be positive.\n";
-        return 1;
-    }
-
-    if (sub_alg_int != 0 and sub_alg_int != 1 and sub_alg_int != 2){
-        std::cout << "Subjet algorithm must be 0 (ca), 1 (kt), or 2 (antikt).\n";
         return 1;
     }
 
@@ -422,9 +413,10 @@ void write_ewoc_header_cmdln(int argc, char* argv[]) {
     int         n_events      = nevents_cmdln(argc, argv);
     std::string qcd_level     = level_cmdln(argc, argv);
     std::string process_str   = process_cmdln(argc, argv);
-    int         jet_alg_int   = jetalg_cmdln(argc, argv);
+
+    std::string jet_alg       = jetalgstr_cmdln(argc, argv);
     double      jet_rad       = jetrad_cmdln(argc, argv);
-    int         sub_alg_int   = subalg_cmdln(argc, argv);
+    std::string sub_alg       = subalgstr_cmdln(argc, argv);
     double      sub_rad       = subrad_cmdln(argc, argv);
 
     double      E_cm          = Ecm_cmdln(argc, argv);
@@ -453,10 +445,10 @@ void write_ewoc_header_cmdln(int argc, char* argv[]) {
          << "# Number of events:\n"
          << "n_events = " + std::to_string(n_events) << "\n"
          << "# Jet information:\n"
-         << "jet_alg = " + std::to_string(jet_alg_int) << "\n"
+         << "jet_alg = " + jet_alg << "\n"
          << "jet_rad = " + std::to_string(jet_rad) << "\n"
          << "# Subjet information:\n"
-         << "sub_alg = " + std::to_string(sub_alg_int) << "\n"
+         << "sub_alg = " + sub_alg << "\n"
          << "sub_rad = " + std::to_string(sub_rad) << "\n\n\n"
          << "# ==================================\n"
          << "# Event output:\n"
@@ -532,31 +524,56 @@ std::string process_cmdln(int argc, char* argv[]) {
 }
 
 
+// ---------------------------------
+// Jet Definition
+// ---------------------------------
+
 // - - - - - - - - - - - - - - - - -
 // Jet and subjet algorithms
 // - - - - - - - - - - - - - - - - -
-const int _JETALG_DEFAULT = 2;  // anti-kt
-const int _SUBALG_DEFAULT = 1;  // cambridge-aachen (ca)
+const std::string _JETALG_DEFAULT = "antikt";
+const std::string _SUBALG_DEFAULT = "cambridge-aachen";
 
-int jetalg_cmdln(int argc, char* argv[]) {
+std::string jetalgstr_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         if(str_eq(argv[iarg], "-j") or
           str_eq(argv[iarg], "--jet_alg")) {
-            return jet_alg_str_to_int(argv[iarg+1]);
+            return argv[iarg+1];
         }
     }
     return _JETALG_DEFAULT;
 }
 
-int subalg_cmdln(int argc, char* argv[]) {
+std::string subalgstr_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         if(str_eq(argv[iarg], "-s") or
           str_eq(argv[iarg], "--sub_alg")) {
-            return jet_alg_str_to_int(argv[iarg+1]);
+            return argv[iarg+1];
         }
     }
     return _SUBALG_DEFAULT;
 }
+
+
+/* int jetalg_cmdln(int argc, char* argv[]) { */
+/*     for(int iarg=0;iarg<argc;iarg++) { */
+/*         if(str_eq(argv[iarg], "-j") or */
+/*           str_eq(argv[iarg], "--jet_alg")) { */
+/*             return jet_alg_str_to_int(argv[iarg+1]); */
+/*         } */
+/*     } */
+/*     return _JETALG_DEFAULT; */
+/* } */
+
+/* int subalg_cmdln(int argc, char* argv[]) { */
+/*     for(int iarg=0;iarg<argc;iarg++) { */
+/*         if(str_eq(argv[iarg], "-s") or */
+/*           str_eq(argv[iarg], "--sub_alg")) { */
+/*             return jet_alg_str_to_int(argv[iarg+1]); */
+/*         } */
+/*     } */
+/*     return _SUBALG_DEFAULT; */
+/* } */
 
 
 // - - - - - - - - - - - - - - - - -
@@ -836,7 +853,7 @@ int jet_alg_str_to_int(std::string alg_str) {
 */
 std::string ewoc_folder(int argc, char* argv[]) {
     // Getting arguments from command line input
-    int         jet_alg_int   = jetalg_cmdln(argc, argv);
+    std::string jet_alg       = jetalgstr_cmdln(argc, argv);
     double      jet_rad       = jetrad_cmdln(argc, argv);
 
     std::string jet_rad_folder = "jetR" + str_round(jet_rad, 1) + "/";
@@ -845,7 +862,7 @@ std::string ewoc_folder(int argc, char* argv[]) {
     mkdir((process_folder(argc, argv) + jet_rad_folder).c_str(),
           S_IRWXU | S_IRWXG | S_IROTH | S_IXOTH);
 
-    std::string jet_alg_folder = jet_alg_int_to_str(jet_alg_int) + "jet/";
+    std::string jet_alg_folder = alg_label[jet_alg] + "jet/";
 
     std::string folder_name = process_folder(argc, argv) + jet_rad_folder + jet_alg_folder;
     int new_dir = mkdir(folder_name.c_str(),
@@ -875,7 +892,7 @@ std::string ewoc_file_label(int argc, char* argv[]) {
     // Getting arguments from command line input
     // Required basic settings
     int         n_events      = nevents_cmdln(argc, argv);
-    int         sub_alg_int   = subalg_cmdln(argc, argv);
+    std::string sub_alg       = subalgstr_cmdln(argc, argv);
     double      sub_rad       = subrad_cmdln(argc, argv);
     // Optional basic settings
     double      pt_min        = ptmin_cmdln(argc, argv);
@@ -887,7 +904,7 @@ std::string ewoc_file_label(int argc, char* argv[]) {
     double      frag_temp     = fragtemp_cmdln(argc, argv);
 
     // Filename:
-    std::string sub_label = "_" + jet_alg_int_to_str(sub_alg_int) + "sub";
+    std::string sub_label = "_" + alg_label[sub_alg] + "sub";
 
     std::string ewoc_file = "subR" + str_round(sub_rad, 2) + sub_label
                             + "_" + std::to_string(n_events) + "evts";

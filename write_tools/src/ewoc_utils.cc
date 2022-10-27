@@ -63,12 +63,8 @@ using namespace fastjet;
 * @return: void
 */
 std::vector<int> store_event_subpair_info(const PseudoJets particles,
-                           const JetAlgorithm jet_algorithm,
-                           const double jetR,
-                           const RecombinationScheme jet_recomb,
-                           const JetAlgorithm subjet_algorithm,
-                           const double subjetR,
-                           const RecombinationScheme sub_recomb,
+                           JetDefinition jet_def,
+                           JetDefinition subjet_def,
                            const double pt_min, const double pt_max,
                            std::ofstream& ewoc_file,
                            std::ofstream& jet_pt_file,
@@ -79,15 +75,14 @@ std::vector<int> store_event_subpair_info(const PseudoJets particles,
     bool write_jet_pt = jet_pt_file.is_open();
     std::vector<int> event_info;
 
+    // - - - - - - - - - - - - - - - - -
+    // Finding jets that match our cuts
+    // - - - - - - - - - - - - - - - - -
     // Muting FastJet banner
     std::streambuf *old = cout.rdbuf();
     stringstream ss; ss.str("");
     cout.rdbuf (ss.rdbuf());  // Redirect output
 
-    // - - - - - - - - - - - - - - - - -
-    // Finding jets that match our cuts
-    // - - - - - - - - - - - - - - - - -
-    JetDefinition jet_def(jet_algorithm, jetR, jet_recomb);
     ClusterSequence cluster_seq(particles, jet_def);
 
     cout.rdbuf (old);  // Restore output
@@ -112,8 +107,8 @@ std::vector<int> store_event_subpair_info(const PseudoJets particles,
         }
 
         // Writing subjet pair EWOCs and subjet pT
-        int jet_info = store_jet_subpair_info(jet, subjet_algorithm, subjetR, sub_recomb,
-                                          ewoc_file, subjet_pt_file, return_info);
+        int jet_info = store_jet_subpair_info(jet, subjet_def, ewoc_file,
+                                              subjet_pt_file, return_info);
         event_info.push_back(jet_info);
     }
 
@@ -134,12 +129,10 @@ std::vector<int> store_event_subpair_info(const PseudoJets particles,
 * @return: void
 */
 int store_jet_subpair_info(const PseudoJet jet,
-                         const JetAlgorithm subjet_algorithm,
-                         const double subjetR,
-                         const RecombinationScheme sub_recomb,
-                         std::ofstream& ewoc_file,
-                         std::ofstream& subjet_pt_file,
-                         const std::string return_info) {
+                           JetDefinition subjet_def,
+                           std::ofstream& ewoc_file,
+                           std::ofstream& subjet_pt_file,
+                           const std::string return_info) {
     // Setup
     bool write_ewocs  = ewoc_file.is_open();
     bool write_subjet_pt = subjet_pt_file.is_open();
@@ -149,10 +142,9 @@ int store_jet_subpair_info(const PseudoJet jet,
     // Finding subjets with the given radius
     // - - - - - - - - - - - - - - - - -
     PseudoJets subjets;
-    if (subjetR == 0)
+    if (subjet_def.R() == 0)
         subjets = sorted_by_pt(jet.constituents());
     else {
-        JetDefinition subjet_def(subjet_algorithm, subjetR, sub_recomb);
         ClusterSequence sub_cluster_seq(jet.constituents(), subjet_def);
         subjets = sorted_by_pt(sub_cluster_seq.inclusive_jets());
     }
@@ -186,7 +178,7 @@ int store_jet_subpair_info(const PseudoJet jet,
             // Storing information regarding narrow emissions
             // (noting double counting)
             if (str_eq(return_info, "num_narrow_emissions")
-              and pair_theta(subjet1, subjet2) < subjetR/10)
+              and pair_theta(subjet1, subjet2) < subjet_def.R()/10)
                 jet_info += .5;
         } }
         // - - - - - - - - - - - - - -

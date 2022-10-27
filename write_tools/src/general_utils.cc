@@ -93,3 +93,19 @@ std::vector<T> arange(const T start, const T stop, const T step /*= 1*/) {
         values.push_back(value);
     return values;
 }
+
+
+// ---------------------------------
+// Hash utilities
+// ---------------------------------
+/**
+* @brief: Allows switch statements for strings
+*         (https://stackoverflow.com/a/46711735)
+*
+* @param: s     string to hash
+*
+* @return: hash function for the given string
+*/
+constexpr unsigned int hash(const char *s, int off) {
+    return !s[off] ? 5381 : (hash(s, off+1)*33) ^ s[off];
+}

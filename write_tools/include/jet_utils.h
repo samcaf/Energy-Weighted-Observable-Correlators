@@ -52,11 +52,13 @@ typedef std::vector<PseudoJet> PseudoJets;
 
 
 // =====================================
-// Error utilities
+// Jet Definition utilities
 // =====================================
-std::string jetalg_error(const JetAlgorithm alg);
 
-double pairwise_error();
+extern std::map<std::string, std::string> alg_label;
+
+JetDefinition process_JetDef(std::string algorithm, double radius,
+                             RecombinationScheme recomb);
 
 
 // =====================================

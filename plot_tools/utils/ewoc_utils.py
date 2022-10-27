@@ -532,7 +532,7 @@ def expected_peaks_scales_colors(obsname, **kwargs):
     return exp_peaks, scales, colors
 
 
-def hist_title(observable, jet_radius, subjet_alg_int):
+def hist_title(observable, jet_radius, subjet_alg):
     """Title for a histogram plotting the EWOC for the given
     subjet pair property, jet radius, and subjet algorithm.
     """
@@ -540,7 +540,7 @@ def hist_title(observable, jet_radius, subjet_alg_int):
     title = r'EWOC, $R_{\rm jet}$=' + f'{float(jet_radius):.1f}'
 
     # Add subjet alg info
-    title += f', {alg_to_string(subjet_alg_int)} Subjets'
+    title += f', {alg_to_string(subjet_alg)} Subjets'
 
     return title
 
@@ -556,9 +556,9 @@ def stamp_ax(ax, jet_rad, sub_rad,
     stamp_text = {'textops_update': {'fontsize': 11,
                       'horizontalalignment': 'center'},
                'line_0':
-                  f"({alg_to_string(kwargs['jet_alg_int'],latex=False).upper()}"\
+                  f"({alg_to_string(kwargs['jet_alg'],latex=False).upper()}"\
                   +(f" {jet_rad}" if jet_rad is not None else '') + ", "\
-                  +f"{alg_to_string(kwargs['sub_alg_int'],latex=False).lower()}"\
+                  +f"{alg_to_string(kwargs['sub_alg'],latex=False).lower()}"\
                   +(f" {sub_rad}" if sub_rad is not None else '')\
                   +fr") \textbf{{{obs_title(obsname)}}}",
                'line_1':

@@ -11,7 +11,4 @@ end
 # Plotting
 ./plot_tools/plot_ewocs -n 10000 -l parton -p qcd --pt_min 50 --pt_max 3000 --plot_jet_pt
 
-
-set --erase generate_events
-set --erase overwrite_hists
-set --erase show_plots
+./scripts/clear_args.sh

@@ -51,7 +51,6 @@ scripts:
 	# =======================================================
 	# Allowing EWOC writing and plotting scripts to be run as executables:
 	chmod +x scripts/*;
-	@printf "\n"
 
 # - - - - - - - - - - - - - - -
 # Make all main functions

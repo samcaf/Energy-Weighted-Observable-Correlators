@@ -37,17 +37,20 @@ To visualize an example event, try ``./scripts/vis_event_single.sh --process qcd
 I think it might be helpful even for myself to have some notes regarding the file structure here; I hope if you're visiting that it helps you too!
 
 The files in this repository are usually grouped as useful either for "writing", in C++, (data analysis and storage) or "plotting", in python (data visualization). These are stored in the ``write_tools`` folder and the ``plot_tools`` folder, respectively:
-![plot](./doc_figs/basic_structure.png)
+![structure](./doc_figs/basic_structure.png | width=100)
 The writing and plotting utilities are grouped together into executables, which can be prepared using the ``make`` command in the main folder:
-![plot](./doc_figs/make.png)
+![make](./doc_figs/make.png)
 
 Finally, the scripts in the ``scripts`` folder tie the writing and plotting tools, so that one can more easily understand EWOCs, with fewer presses.
-![plot](./doc_figs/scripts.png)
+![scripts](./doc_figs/scripts.png)
 I note that I follow the unconventional choice of using the fish shell language in most of these scripts; sorry for any inconvenience.
 
 
-## <a name="background"></a> Background
-Energy weighting is useful in situations when we don't understand dynamics at particular energy scales, and want to isolate physics at energy scales we _do_ care about. In the case of Quantum Chromodynamics (QCD), we are still working on understanding the contributions of the complicated low-energy ("soft") behavior of what we call the "fundamental" building blocks of QCD -- quarks and gluons.
+## <a name="background"></a> Physics Background
+Energy weighting is a way of taking the physics at certain energy scales "more seriously": observables which include a linear energy weighting give higher energy particles more weight than they do to low energy particles.
+For this reason, energy weighting is useful in situations when we don't understand dynamics at particular energy scales, and want to isolate physics at energy scales we _do_ understand.
+
+In the case of Quantum Chromodynamics (QCD), we want to test the behavior of the "fundamental" building blocks of QCD at high energy scales: quarks and gluons. Energy weighting allows us to isolate the high energy physics of quarks and gluons while remaining more agnostic to the behavior of QCD at low energy scales -- a difficult problem which has evaded physicists for a long time, and which we would like to avoid for cleanness and simplicity.
 
 Energy weighted observables are useful in QCD, and have been for a long while. In part, this is because they are more easily calculable than other observables in QCD; in part again, this is because they are less susceptible to complicated contributions from soft radiation: contributions of soft radiation to observables is naturally suppressed by a linear energy weighting (or an energy weighting of any positive power)!
 

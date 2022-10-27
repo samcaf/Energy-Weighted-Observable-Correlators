@@ -374,7 +374,7 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
         std::cout << "beam E_cm: 4 TeV.";
         pythia.readString("Beams:eCM = 4000");
     }
-    std::cout << "\n# ---------------------------------";
+    std::cout << "\n# ---------------------------------\n\n";
 
     // Parton or hadron level
     if (str_eq(qcd_level, "parton"))

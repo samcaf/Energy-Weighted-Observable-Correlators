@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
 # Script for quick visualization
 # Example usage:
-# ./scripts/vis_event_single.sh -l hadron -p qcd -j akt -s ca -R 2 -r 1
+# ./setup/vis_event_single.sh -l hadron -p qcd -j $alg_prefix'akt' -s $alg_prefix'ca' -R 2 -r 1
+
+./setup/get_args.sh $argv
 
 # Writing an event
 ./write_tools/write_ewocs --write_event last --write_ewocs false $@ -n 1
@@ -21,3 +23,5 @@ echo "Erasing the evidence >:)"
 rm $value
 rm event_vis_pointer.txt
 rm event_vis_script.sh
+
+./setup/clear_args.sh $argv

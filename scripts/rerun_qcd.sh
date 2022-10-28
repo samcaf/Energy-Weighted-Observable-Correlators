@@ -3,6 +3,7 @@
 # =============================
 # QCD
 # =============================
+echo -en "Start time : "(date +%m/%d-%H:%M)"\n\n"
 
 # -------------------------
 # Subjet radii
@@ -29,3 +30,5 @@
 # -------------------------
 ./scripts/qcd_fragtemp.sh $argv
 ./scripts/qcd_fragtemp_r0.sh $argv
+
+echo -en "\n\nEnd time : "(date +%m/%d-%H:%M)

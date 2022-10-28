@@ -4,6 +4,7 @@
 # =============================
 # W
 # =============================
+echo -en "Start time : "(date +%m/%d-%H:%M)"\n\n"
 
 # -------------------------
 # Subjet radii
@@ -17,3 +18,5 @@
 # -------------------------
 ./scripts/w_parton-v-hadron.sh $argv
 ./scripts/w_parton-v-hadron_500.sh $argv
+
+echo -en "\n\nEnd time : "(date +%m/%d-%H:%M)

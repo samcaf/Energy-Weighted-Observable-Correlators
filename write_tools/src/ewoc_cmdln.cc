@@ -250,7 +250,7 @@ int checkCmdInputs(int argc, char* argv[]) {
         return 1;
     }
 
-    if (E_cm != _ECM_DEFAULT and E_cm <= 0){
+    if (E_cm <= 0){
         std::cout << "Center of mass energy must be positive.\n";
         return 1;
     }
@@ -356,15 +356,11 @@ void setup_pythia_ewoc_cmdln(Pythia8::Pythia &pythia, int argc, char* argv[]) {
     }
 
     // Beam energy
-    if (E_cm != _ECM_DEFAULT) {
-        std::cout << "beam E_cm: "
-                  << std::to_string(E_cm/1000.) << " TeV.";
-        pythia.readString("Beams:eCM = " + std::to_string(E_cm));
-    }
-    else {
-        std::cout << "beam E_cm: 4 TeV.";
-        pythia.readString("Beams:eCM = 4000");
-    }
+    std::cout << "beam E_cm: "
+              << std::to_string(E_cm/1000.) << " TeV.";
+    pythia.readString("Beams:eCM = " + std::to_string(E_cm));
+    std::cout << "beam E_cm: 4 TeV.";
+    pythia.readString("Beams:eCM = 4000");
     std::cout << "\n# ---------------------------------\n\n";
 
     // Parton or hadron level
@@ -666,7 +662,7 @@ double ptmax_cmdln(int argc, char* argv[]) {
 }
 
 
-const double _ECM_DEFAULT = -1;
+const double _ECM_DEFAULT = 4000;
 double Ecm_cmdln(int argc, char* argv[]) {
     for(int iarg=0;iarg<argc;iarg++) {
         // Event Generator Parameters

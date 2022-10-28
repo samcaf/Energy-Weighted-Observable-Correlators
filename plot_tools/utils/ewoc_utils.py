@@ -54,8 +54,12 @@ from utils.ewoc_cmdln import ewoc_file_label
 # ---------------------------------
 # Global Flags
 # ---------------------------------
+# Make plots with errorbars
 plot_errorbars = False
-plot_scatter = True  # Only applied if plot_errorbars = False
+# Make plots with x errorbars (like a histogram)
+plot_xerr      = True  # Only applied if plot_errorbars = False 
+# Make a scatter plot
+plot_scatter   = True  # Only applied if both above are False
 
 # =====================================
 # Utilities for reading EWOC data  
@@ -69,7 +73,8 @@ def save_hist_dict(overwrite, print_every_n=1000,
                   **kwargs):
     file_prefix = ewoc_file_label(**kwargs)
     data_dir = file_prefix + '.txt'
-    hist_dir = file_prefix + '_normed.npz'
+    hist_dir = file_prefix + '_nbins' + str(kwargs['nbins'])\
+               + '_normed.npz'
 
     if os.path.isfile(hist_dir):
         print(f"File found at {hist_dir}.")
@@ -99,7 +104,8 @@ def get_hist_dict(load=True, save=True, print_every_n=1000,
                   **kwargs):
     file_prefix = ewoc_file_label(**kwargs)
     data_dir = file_prefix + '.txt'
-    hist_dir = file_prefix + '_normed.npz'
+    hist_dir = file_prefix + '_nbins' + str(kwargs['nbins'])\
+               + '_normed.npz'
 
     if load: 
         try:
@@ -278,7 +284,8 @@ def ewoc_text_to_dict(filename, pair_obs=None,
 
 
 def ewoc_dict_to_hists(data_dict, hist_dict=None,
-                       nbins=100, binspaces=['linear', 'log']):
+                       binspaces=['linear', 'log'],
+                       **kwargs):
     """
     Takes in the location of an ewoc formatted file.
     Returns a dict with (roughly)
@@ -291,13 +298,19 @@ def ewoc_dict_to_hists(data_dict, hist_dict=None,
     ----------
         filename : str
             Name of the ewoc formatted file.
-        nbins : int
-            Number of bins (not bin edges!) for the hists.
+        kwargs : dict
+            Set of inputs from functions calling this one,
+            meant to be received from command line input.
+            Used to get number of bins for histograms.
 
     Returns
     -------
     Dict of histograms containing easy-to-plot ewoc information.
     """
+    # Getting number of bins
+    print(kwargs)
+    nbins = kwargs['nbins']
+
     # Preparing to store histograms for this info
     if hist_dict is None:
         hist_dict = {'observables': data_dict['observables']}
@@ -313,8 +326,8 @@ def ewoc_dict_to_hists(data_dict, hist_dict=None,
                                   get_hist_edges_centers(data_dict[key],
                                                          data_dict['weights'],
                                                          nbins, space)
-                                  for space in binspaces
-                                  if space in ['linear', 'lin']}
+                                      for space in binspaces
+                                      if space in ['linear', 'lin']}
 
                 # z = (1-cos(theta))/2
                 hist_dict['z'] = {}
@@ -646,6 +659,9 @@ def plot_hist_dict(hist_dicts, obsname,
         if plot_errorbars:
             ax[0].errorbar(xs, ys, yerr=np.sqrt(ys/len(ys)),
                        xerr=(xs - x_edges[:-1], x_edges[1:] - xs),
+                       label=label, **modstyle) 
+        elif plot_xerr:
+            ax[0].errorbar(xs, ys, xerr=(xs - x_edges[:-1], x_edges[1:] - xs),
                        label=label, **modstyle)
         elif plot_scatter:
             ax[0].scatter(xs, ys, label=label, **style_scatter)
@@ -670,6 +686,10 @@ def plot_hist_dict(hist_dicts, obsname,
             if plot_errorbars:
                 ax[1].errorbar(xs, ys/analytic,
                            yerr=np.sqrt(ys/len(ys))/analytic,
+                           xerr=(xs - x_edges[:-1], x_edges[1:] - xs),
+                           **modstyle)
+            elif plot_xerr:
+                ax[1].errorbar(xs, ys/analytic,
                            xerr=(xs - x_edges[:-1], x_edges[1:] - xs),
                            **modstyle)
             elif plot_scatter:

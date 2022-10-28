@@ -57,9 +57,11 @@ int main (int argc, char* argv[]) {
     // Starting timer
     auto start = high_resolution_clock::now();
 
+    // ---------------------------------
     // =====================================
     // Command line setup
     // =====================================
+    // ---------------------------------
     // Ensure valid command line inputs
     if (checkCmdInputs(argc, argv) == 1) return 1;
 
@@ -84,6 +86,7 @@ int main (int argc, char* argv[]) {
     RecombinationScheme sub_recomb = subrecomb_cmdln(argc, argv);
 
     // Getting jet definitions:
+    // DEBUG: Add function
     JetDefinition jet_def = process_JetDef(jet_alg, jet_rad,
                                            jet_recomb);
     JetDefinition sub_def = process_JetDef(sub_alg, sub_rad,
@@ -104,7 +107,9 @@ int main (int argc, char* argv[]) {
 
 
     // ---------------------------------
+    // =====================================
     // Output Setup
+    // =====================================
     // ---------------------------------
     // - - - - - - - - - - - - - - - - -
     // Determines whether EWOC output is written
@@ -189,7 +194,9 @@ int main (int argc, char* argv[]) {
         throw Error("Invalid event generator");
 
     // ---------------------------------
+    // =====================================
     // Analyzing events
+    // =====================================
     // ---------------------------------
     for (int iev = 0; iev < n_events; iev++) {
         // Initializing particles and info for this event

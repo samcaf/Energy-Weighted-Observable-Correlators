@@ -291,11 +291,17 @@ ewoc_parser.add_argument("-T", "--frag_temp",
 # ---------------------------------
 # Easy Plotting Options (Optional)
 # ---------------------------------
+ewoc_parser.add_argument("--nbins", "--n_bins",
+            dest="nbins", type=int,
+            help="Number of bins for histograms in plots "+\
+                 "(or spacing between points in scatter plots);",
+            default=100,
+            required=False)
 
 ewoc_parser.add_argument("--plot_type",
             dest="plot_type", type=str,
             help="Argument which sets the type of plot to create."\
-                 +"Can be:\n*'sub_rad';\n'pvh';\n*'thermal';",
+                 +"Can be:\n*'sub_rad' (default);\n'pvh';\n*'thermal';",
             default='sub_rad',
             required=False)
                 

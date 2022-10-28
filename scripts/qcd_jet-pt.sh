@@ -9,6 +9,6 @@ if $generate_events
 end
 
 # Plotting
-./plot_tools/plot_ewocs -n 10000 -l parton -p qcd --pt_min 50 --pt_max 3000 --plot_jet_pt
+./plot_tools/plot_ewocs --nbins $nbins -n 10000 -l parton -p qcd --pt_min 50 --pt_max 3000 --plot_jet_pt
 
 ./setup/clear_args.sh

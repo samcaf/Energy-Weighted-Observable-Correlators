@@ -89,7 +89,7 @@ def save_hist_dict(overwrite, print_every_n=1000,
     # Creating the histogram data
     print(f"Processing data from {data_dir}.\n")
     data_dict = ewoc_text_to_dict(data_dir, print_every_n=print_every_n)
-    hist_dict = ewoc_dict_to_hists(data_dict) 
+    hist_dict = ewoc_dict_to_hists(data_dict, **kwargs) 
     del data_dict
 
     print(f"Saving histogram data to {hist_dir}"\
@@ -308,7 +308,6 @@ def ewoc_dict_to_hists(data_dict, hist_dict=None,
     Dict of histograms containing easy-to-plot ewoc information.
     """
     # Getting number of bins
-    print(kwargs)
     nbins = kwargs['nbins']
 
     # Preparing to store histograms for this info

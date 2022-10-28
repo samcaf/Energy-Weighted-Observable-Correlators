@@ -23,11 +23,11 @@ end
 # Plotting
 # ==========================
 if begin ; $overwrite_hists ; and $show_plots ; end
-  ./plot_tools/plot_ewocs -n 10000 -l hadron -p qcd -j $alg_prefix'akt' -s $alg_prefix'ca' -R 1000 1.0 -r 0.0 0.10 --pt_min 50 --pt_max 3000 --plot_type pvh --overwrite_hists true --show_plots true
+  ./plot_tools/plot_ewocs --nbins $nbins -n 10000 -l hadron -p qcd -j $alg_prefix'akt' -s $alg_prefix'ca' -R 1000 1.0 -r 0.0 0.10 --pt_min 50 --pt_max 3000 --plot_type pvh --overwrite_hists true --show_plots true
 else if $overwrite_hists
-  ./plot_tools/plot_ewocs -n 10000 -l hadron -p qcd -j $alg_prefix'akt' -s $alg_prefix'ca' -R 1000 1.0 -r 0.0 0.10 --pt_min 50 --pt_max 3000 --plot_type pvh --overwrite_hists true --show_plots false
+  ./plot_tools/plot_ewocs --nbins $nbins -n 10000 -l hadron -p qcd -j $alg_prefix'akt' -s $alg_prefix'ca' -R 1000 1.0 -r 0.0 0.10 --pt_min 50 --pt_max 3000 --plot_type pvh --overwrite_hists true --show_plots false
 else if $show_plots
-  ./plot_tools/plot_ewocs -n 10000 -l hadron -p qcd -j $alg_prefix'akt' -s $alg_prefix'ca' -R 1000 1.0 -r 0.0 0.10 --pt_min 50 --pt_max 3000 --plot_type pvh --overwrite_hists false --show_plots true
+  ./plot_tools/plot_ewocs --nbins $nbins -n 10000 -l hadron -p qcd -j $alg_prefix'akt' -s $alg_prefix'ca' -R 1000 1.0 -r 0.0 0.10 --pt_min 50 --pt_max 3000 --plot_type pvh --overwrite_hists false --show_plots true
 end
 
 # ==========================

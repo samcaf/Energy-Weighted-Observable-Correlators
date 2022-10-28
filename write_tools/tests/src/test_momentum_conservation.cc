@@ -216,17 +216,16 @@ int main (int argc, char* argv[]) {
         PseudoJets balanced_particles = particles;
         balanced_particles.push_back(event_4mom);
         test_momentum_conservation(balanced_particles,
-                                   base_verbose + int((iev+1)%print_every == 0));
+               base_verbose + int((iev+1)%print_every == 0));
 
 
-        /* cout << "\n# ===========================" */
-        /*      << " QCD Particles " */
-        /*      << "============================ #\n"; */
-        // Momentum conservation for QCD only ( 2 ):
-
-        // PseudoJets qcd_particles = get_particles_pythia(event,
-        //                              /*qcd_only=*/true)
-
+        cout << "\n# ==========================="
+             << " QCD Particles "
+             << "============================ #\n";
+        PseudoJets qcd_particles = get_particles_pythia(event, qcd_pids);
+        qcd_particles.push_back(event_4mom);
+        test_momentum_conservation(qcd_particles,
+               base_verbose + 2*int((iev+1)%print_every == 0));
 
         // - - - - - - - - - - - - - - - - -
         // Jets

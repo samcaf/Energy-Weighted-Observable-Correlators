@@ -129,6 +129,13 @@ int is_nu_id(const int id) {
 // ---------------------------------
 // Event-level utilities
 // ---------------------------------
+// PIDs for QCD particles:
+const std::vector<int> qcd_pids{
+            1, -1, 2, -2, 3, -3,    // light quarks
+            4, -4, 5, -5,           // heavy quarks
+            111, 211, -211, 221,    // light mesons
+            // Probably should include more?
+};
 
 /**
 * @brief: Takes in a Pythia Event and return a vector of PseudoJets
@@ -139,17 +146,35 @@ int is_nu_id(const int id) {
 *
 * @return: vector<PseudoJet>    A vector containing all particles in the event.
 */
-PseudoJets get_particles_pythia(const Pythia8::Event event) {
+PseudoJets get_particles_pythia(const Pythia8::Event event,
+                                std::vector<int> use_pids,
+                                bool no_neutrinos) {
     // Storing particles of an event as PseudoJets
     PseudoJets particles;
 
     for (int ipart = 0; ipart < event.size(); ipart++) {
-        // Finding visible final states and converting to pseudojets
-        if (event[ipart].isFinal() and !is_nu_id(event[ipart].id())){
-        PseudoJet particle(event[ipart].px(), event[ipart].py(),
-                           event[ipart].pz(), event[ipart].e());
-        particle.set_user_index(ipart);
-        particles.push_back(particle);
+        // Finding relevant final states and converting to pseudojets
+        bool include_particle = (
+            // Final states only:
+            event[ipart].isFinal()
+                and
+            // DEBUG: More elegant way -- e.g. make function to
+            //  check particle for list membership and externally
+            //  define neutrino and qcd ids
+            // No neutrinos unless requested:
+            not(is_nu_id(event[ipart].id()) and no_neutrinos)
+                and
+            // If given a list of particle ids, only use those
+            (use_pids.size() == 0 or
+             std::find(use_pids.begin(), use_pids.end(),
+                 event[ipart].id()) != use_pids.end())
+            );
+
+        if (include_particle){
+            PseudoJet particle(event[ipart].px(), event[ipart].py(),
+                               event[ipart].pz(), event[ipart].e());
+            particle.set_user_index(ipart);
+            particles.push_back(particle);
     }}
 
     return particles;

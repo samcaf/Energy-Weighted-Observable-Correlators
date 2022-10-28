@@ -75,8 +75,11 @@ int is_nu_id(const int id);
 // ---------------------------------
 // Event-level utilities
 // ---------------------------------
+extern const std::vector<int> qcd_pids;
 
-PseudoJets get_particles_pythia(const Pythia8::Event event);
+PseudoJets get_particles_pythia(const Pythia8::Event event,
+                                std::vector<int> use_pids = {},
+                                bool no_neutrinos = true);
 
 PseudoJets add_events(const PseudoJets event1, const PseudoJets event2);
 
